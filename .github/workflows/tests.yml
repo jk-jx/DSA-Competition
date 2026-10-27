@@ -18,4 +18,4 @@ jobs:
           cache-dependency-path: DSA/requirements.txt
       - run: pip install -r requirements.txt pytest
       - run: python -m pytest -q
-      - run: python -m compileall -q app.py pages workflow.py
+      - run: python -m compileall -q app.py portal.py assistant_guide.py ui.py pages workflow.py
