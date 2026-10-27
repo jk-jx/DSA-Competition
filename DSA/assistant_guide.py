@@ -232,17 +232,17 @@ div.st-key-operations_assistant_dock {
     margin:0!important;
 }
 div.st-key-operations_assistant_dock button {
-    background:linear-gradient(120deg,#123b65,#2469a3)!important;
+    background:linear-gradient(120deg,#153e5d,#1e6177)!important;
     color:white!important;
-    border:1px solid #75b3d9!important;
-    border-radius:28px!important;
+    border:1px solid #68a8b2!important;
+    border-radius:16px!important;
     padding:12px 18px!important;
     min-height:49px!important;
     font-weight:800!important;
-    box-shadow:0 10px 28px rgba(11,41,74,.29)!important;
+    box-shadow:0 11px 30px rgba(10,32,53,.23)!important;
 }
 div.st-key-operations_assistant_dock button:hover {
-    background:#164d85!important;
+    background:#174d66!important;
 }
 div.st-key-operations_assistant_dock [data-testid="stPopover"] {width:max-content}
 @media(max-width:700px) {
@@ -254,8 +254,8 @@ div.st-key-operations_assistant_dock [data-testid="stPopover"] {width:max-conten
     )
 
     with st.container(key="operations_assistant_dock"):
-        with st.popover("🧭  Operations Assistant", help="Open your context-aware portal guide"):
-            st.markdown("#### 🧭 Operations Assistant")
+        with st.popover("✦  Ask Operations", help="Open your context-aware portal guide"):
+            st.markdown("#### ✦ Operations Assistant")
             st.caption("Your guide to requests, approvals and purchasing intelligence")
             st.info(target.message)
             st.button(
