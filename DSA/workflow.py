@@ -22,6 +22,25 @@ def submit_request(domain,payload,requester='Alex Sales',merge_source=None,merge
     missing=[f for f in cfg['required'] if not str(payload.get(f,'')).strip()]
     if missing: raise WorkflowError('Required fields missing: '+', '.join(missing))
     country=payload['country']; entity=payload['entity']
+    if bool(merge_source) != bool(merge_target):
+        raise WorkflowError('Choose both an existing alias and a golden record, or neither.')
+    if merge_source and domain != 'Customer':
+        raise WorkflowError('Customer identity resolution is the supported matching domain.')
+    if merge_source:
+        # Check legal identifiers before routing; final MDM validation repeats this inside its transaction.
+        from dedup import normalize
+        from rapidfuzz import fuzz
+        with conn() as check:
+            source=check.execute('SELECT * FROM customers WHERE customer_id=?',(merge_source,)).fetchone()
+            target=check.execute('SELECT * FROM customers WHERE customer_id=?',(merge_target,)).fetchone()
+            if (not source or not target or merge_source==merge_target or
+                source['country']!=country or target['country']!=country or
+                source['registration_number']!=target['registration_number'] or
+                str(payload.get('registration_number','')).strip()!=source['registration_number'] or
+                fuzz.token_sort_ratio(normalize(payload['name']),normalize(source['name']))<75):
+                raise WorkflowError('Identity-resolution proposal requires a matching country, verified identifier, and source record.')
+            if check.execute('SELECT 1 FROM identity_map WHERE alias_id IN (?,?)',(merge_source,merge_target)).fetchone():
+                raise WorkflowError('An identity is already mapped; choose an unmapped pair.')
     with conn() as c:
         c.execute('BEGIN IMMEDIATE')
         k='RQ-'+str(c.execute('SELECT COALESCE(MAX(id),0)+1 FROM mdm_requests').fetchone()[0]).zfill(4)
