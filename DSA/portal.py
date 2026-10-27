@@ -22,7 +22,7 @@ from sla import process_sla, sla_snapshot
 from workflow import (
     WorkflowError, add_approval_rule, decide, finalize, submit_request,
 )
-from ui import hero, panel, pill
+from ui import hero, panel, pill, metric_tile, section_label
 
 SECTIONS = ["Overview", "Master Data", "Regional Performance", "Insights & Forecasts", "Administration"]
 WORK_VIEWS = ["Request tracker", "Create request", "Approval inbox"]
@@ -65,95 +65,102 @@ def task_summary():
 
 
 def portal_header(title, subtitle):
-    left, right = st.columns([3, 1], vertical_alignment="center")
-    with left:
-        st.markdown(
-            '<p class="portal-eyebrow">LIVES GROUP &nbsp; / &nbsp; OPERATIONS</p>',
-            unsafe_allow_html=True,
-        )
-        st.markdown("## " + title)
-        st.caption(subtitle)
-    with right:
-        st.markdown(
-            '<div class="portal-status"><span class="status-dot"></span>'
-            ' DEMONSTRATION ENVIRONMENT</div>',
-            unsafe_allow_html=True,
-        )
-    st.divider()
+    from html import escape
+    st.markdown(
+        '<div class="portal-header-row"><div>'
+        '<p class="portal-eyebrow">WORKSPACE / OPERATIONS</p>'
+        f'<h1>{escape(title)}</h1><p>{escape(subtitle)}</p>'
+        '</div><div class="portal-status"><span class="status-dot"></span>'
+        'DEMO WORKSPACE</div></div>',
+        unsafe_allow_html=True,
+    )
 
 
 def overview():
-    portal_header("Operations overview", "A shared view of master data, approvals and regional purchasing.")
+    portal_header("Good to have you here.", "A clear view of what needs attention across operations.")
     req = requests()
     pending = task_summary()
     mapped = load_df("SELECT COUNT(*) AS n FROM identity_map").iloc[0]["n"]
     counts = record_type_counts()
+    section_label("At a glance", "Updated from the current synthetic workspace")
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Master-data requests", f"{len(req)}")
-    k2.metric("Pending approvals", f"{len(pending)}")
-    k3.metric("Verified identity links", f"{int(mapped)}")
-    k4.metric("Purchase-order lines", f"{counts.get('PO',0):,}")
+    with k1: metric_tile("Master-data requests", f"{len(req)}", "▤", "blue", "Tracked in the portal")
+    with k2: metric_tile("Approvals waiting", f"{len(pending)}", "◷", "amber", "Steward decisions outstanding")
+    with k3: metric_tile("Verified identity links", f"{int(mapped)}", "◇", "teal", "Customer records reconciled")
+    with k4: metric_tile("Purchase-order lines", f"{counts.get('PO',0):,}", "↗", "slate", "Confirmed purchase orders")
 
-    st.markdown("### Your workspace")
+    hero_data = hero_customer()
+    impact = decision_impact()
+    st.markdown(
+        '<div class="portal-banner"><div class="tag">FEATURED INSIGHT  /  MASTER DATA QUALITY</div>'
+        '<h2>The same customer. Two very different business decisions.</h2>'
+        '<p>When duplicate customer identities are reconciled, sales teams can act on '
+        'the right trend without changing a single original purchase order.</p></div>',
+        unsafe_allow_html=True,
+    )
+    left, right = st.columns([1.35, 1])
+    with left:
+        with st.container(border=True):
+            st.markdown("##### Featured account  ·  Hospital ABC")
+            a, b = st.columns(2)
+            with a:
+                st.metric("Raw identity growth", f"{hero_data['raw']['growth']:+.0f}%")
+            with b:
+                st.metric("Consolidated growth", f"{hero_data['cleaned']['growth']:+.0f}%")
+            if hero_data["resolved"]:
+                st.success("Verified identity link · customer is growing")
+            else:
+                st.caption("The consolidated view becomes actionable after steward approval.")
+            nav_button("Explore customer impact  →", "Regional Performance", key="home_impact")
+    with right:
+        with st.container(border=True):
+            st.markdown("##### Decision-quality monitor")
+            st.metric("Customer classifications changed", f"{impact['changed']} / {impact['eligible']}")
+            st.caption(f"{impact['percent']:.2f}% decision impact on the synthetic comparable accounts.")
+            st.caption("Accurate identity linking corrects attribution—not order volume.")
+            nav_button("View insights & forecasts  →", "Insights & Forecasts", key="home_action")
+
+    section_label("Your workspaces", "Quick access")
     a, b, c = st.columns(3)
     with a:
         with st.container(border=True):
-            st.markdown("#### Create a request")
-            st.caption("Validate customer or item details, detect possible duplicates and send for review.")
-            nav_button("New request  →", "Master Data", "Create request", primary=True, key="home_new")
+            st.markdown('<div class="card-icon">✚</div><div class="panel-lead">Create a request</div>'
+                        '<p class="card-description">Validate customer or item records before they enter the approval queue.</p>',
+                        unsafe_allow_html=True)
+            nav_button("Create request  →", "Master Data", "Create request",
+                       primary=True, key="home_new")
     with b:
         with st.container(border=True):
-            st.markdown("#### Review approvals")
-            st.caption("See the pending work queue, delegated deadlines and latest decisions.")
-            nav_button("Open approval inbox  →", "Master Data", "Approval inbox", key="home_review")
+            st.markdown('<div class="card-icon teal">✓</div><div class="panel-lead">Approval inbox</div>'
+                        '<p class="card-description">Resolve requests with independent stewardship checks and traceable decisions.</p>',
+                        unsafe_allow_html=True)
+            nav_button("Review requests  →", "Master Data", "Approval inbox", key="home_review")
     with c:
         with st.container(border=True):
-            st.markdown("#### Regional performance")
-            st.caption("Explore five-country purchasing trends and the effect of verified records.")
-            nav_button("View purchasing  →", "Regional Performance", key="home_regional")
+            st.markdown('<div class="card-icon violet">↗</div><div class="panel-lead">Regional performance</div>'
+                        '<p class="card-description">Explore five-market purchasing trends, account performance and business opportunities.</p>',
+                        unsafe_allow_html=True)
+            nav_button("Explore analytics  →", "Regional Performance", key="home_regional")
 
-    st.markdown("### Decision intelligence")
-    hero_data = hero_customer()
-    impact = decision_impact()
-    x, y = st.columns([1.45, 1])
-    with x:
-        with st.container(border=True):
-            st.markdown("**Featured account · Hospital ABC**")
-            st.caption("An identity issue can reverse a sales interpretation.")
-            b, a = st.columns(2)
-            b.metric("Before reconciliation", f"{hero_data['raw']['growth']:+.0f}%")
-            a.metric("Approved consolidated view", f"{hero_data['cleaned']['growth']:+.0f}%")
-            if hero_data["resolved"]:
-                st.success("Identity verified: the account is growing, not declining.")
-            else:
-                st.info("A pending identity check is hiding the true customer trend.")
-            nav_button("Review impact and source data  →", "Regional Performance", key="home_impact")
-    with y:
-        with st.container(border=True):
-            st.markdown("**Data-quality decision impact**")
-            st.metric("Customers reclassified", f"{impact['changed']} / {impact['eligible']}")
-            st.caption("Percentage: {:.2f}% of eligible comparable canonical accounts.".format(impact["percent"]))
-            st.caption("Confirmed PO totals are never inflated by alias reconciliation.")
-            nav_button("Explore recommendations  →", "Insights & Forecasts", key="home_action")
-
-    left, right = st.columns([1.3, 1])
+    left, right = st.columns([1.45, 1])
     with left:
-        st.markdown("### Recent requests")
+        section_label("Recent requests", "Latest activity")
         short = req[["request_key", "record_name", "domain", "status"]].head(6).rename(columns={
             "request_key": "Request", "record_name": "Record", "domain": "Type", "status": "Status"
         })
         st.dataframe(short, hide_index=True, use_container_width=True)
-        nav_button("Open request tracker  →", "Master Data", "Request tracker", key="home_requests")
+        nav_button("View all requests  →", "Master Data", "Request tracker", key="home_requests")
     with right:
-        st.markdown("### Attention required")
+        section_label("Approval health", "Working-day SLA")
         alerts = sla_snapshot()
         overdue = sum(1 for t in alerts if t["sla_status"] == "Overdue")
         soon = sum(1 for t in alerts if t["sla_status"] == "Due soon")
         with st.container(border=True):
-            st.metric("Overdue steward tasks", overdue)
-            st.caption("{} more due within 24 hours · {} active tasks".format(soon, len(alerts)))
-            st.caption("Approval SLAs and escalation are calculated in working days.")
-            nav_button("Manage approval queue  →", "Master Data", "Approval inbox", key="home_sla")
+            st.metric("Overdue decisions", overdue)
+            st.caption(f"{soon} due soon  ·  {len(alerts)} currently tracked")
+            st.progress((len(alerts) - overdue) / len(alerts) if alerts else 1.0,
+                        text="Tasks not overdue")
+            nav_button("Open review queue  →", "Master Data", "Approval inbox", key="home_sla")
 
 
 def _example_request():
