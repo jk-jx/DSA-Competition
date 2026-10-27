@@ -118,7 +118,7 @@ def overview():
             with a:
                 st.metric("Raw identity growth", f"{hero_data['raw']['growth']:+.0f}%")
             with b:
-                st.metric("Consolidated growth", f"{hero_data['cleaned']['growth']:+.0f}%")
+                st.metric("Approved consolidated growth", f"{hero_data['cleaned']['growth']:+.0f}%")
             if hero_data["resolved"]:
                 st.success("Verified identity link · customer is growing")
             else:
@@ -687,7 +687,7 @@ def regional():
     country = None if country == "All" else country
     product = None if product == "All" else product
     entity = None if entity == "All" else entity
-    df = monthly(country, product)
+    df = monthly(country, product, entity)
     fig = px.line(df, x="period", y="qty", color="product", markers=True,
                   labels={"period": "Month", "qty": "PO quantity", "product": "Product"})
     fig.update_traces(line_width=3)
@@ -712,7 +712,6 @@ def regional():
                key="regional_next", primary=True)
 
 
-@st.cache_data(show_spinner="Evaluating forecasts on matched historical periods…")
 @st.cache_data(ttl=3600, max_entries=1, show_spinner="Evaluating models using confirmed purchase orders…")
 def forecast_results():
     """The 36-month synthetic PO history is unchanged by identity approvals.
