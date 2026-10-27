@@ -23,9 +23,10 @@ from workflow import (
     WorkflowError, add_approval_rule, decide, finalize, submit_request,
 )
 from ui import hero, panel, pill, metric_tile, section_label
+from quality_monitor import quality_cases, quality_summary
 
 SECTIONS = ["Overview", "Master Data", "Regional Performance", "Insights & Forecasts", "Administration"]
-WORK_VIEWS = ["Request tracker", "Create request", "Approval inbox"]
+WORK_VIEWS = ["Quality exceptions", "Request tracker", "Create request", "Approval inbox"]
 
 
 def go(section, work_view=None, request=None):
@@ -495,12 +496,72 @@ def approval_inbox():
 
 
 
+def quality_exceptions():
+    st.markdown("### Data quality exceptions")
+    cases=quality_cases()
+    summary=quality_summary(cases)
+    a,b,c,d=st.columns(4)
+    a.metric("Unresolved identity candidates",summary["unresolved"])
+    b.metric("Cases under governance",summary["awaiting_review"])
+    c.metric("Potential decision changes",summary["decision_changers"])
+    d.metric("12-month alias units",f'{summary["units_attribution_exposure"]:,}')
+    st.caption("Source: customer business identifiers and confirmed purchase orders. Candidate pairs are not automatically merged.")
+    a,b=st.columns(2)
+    with a: market=st.selectbox("Market",["All"]+list(COUNTRIES),key="exception_market")
+    with b: status=st.selectbox("Case status",["All","Unreviewed","In review","Awaiting MDM","Needs revision","Resolved"],key="exception_status")
+    shown=cases
+    if market!="All":shown=shown[shown.country==market]
+    if status!="All":shown=shown[shown.status==status]
+    st.dataframe(shown[["alias_id","target_id","country","priority","status","risk_score","alias_12m_units","category_change"]].rename(columns={
+        "alias_id":"Candidate alias","target_id":"Potential golden record","country":"Market","priority":"Priority",
+        "status":"Status","risk_score":"Review score / 100","alias_12m_units":"Alias units (12m)",
+        "category_change":"Decision category affected"
+    }),hide_index=True,use_container_width=True)
+    if shown.empty:
+        st.caption("No cases match the selected filters.")
+        return
+    choices=shown.alias_id.tolist()
+    selected=st.selectbox("Inspect candidate",choices,key="exception_selected")
+    case=shown.set_index("alias_id").loc[selected]
+    with st.container(border=True):
+        st.markdown(f"#### {case.alias_name} · {selected}")
+        st.caption(f"Potential retained identity: {case.target_name} ({case.target_id})")
+        st.write(f"**Matching business identifier:** {case.registration_number} · **Market:** {case.country}")
+        a,b,c=st.columns(3)
+        a.metric("Review priority",case.priority)
+        b.metric("PO lines attributed to alias (12m)",int(case.exposed_po_lines))
+        c.metric("Alias volume (12m)",f"{int(case.alias_12m_units):,} units")
+        if bool(case.category_change):
+            st.warning(f"Customer growth category may change: {case.current_growth:+.1f}% → {case.potential_growth:+.1f}%. This is an unapproved scenario.")
+        else:
+            st.caption("No growth-category change detected for the current comparison period.")
+        if case.status in ("In review","Awaiting MDM") and pd.notna(case.request_key):
+            st.caption(f"Linked approval case: {case.request_key}")
+            nav_button("Open governed review →","Master Data","Approval inbox",request=case.request_key,key="case_existing")
+        elif case.status=="Resolved":
+            st.success("Verified identity link has been completed.")
+        else:
+            if st.button("Prepare customer review",type="primary",key="prepare_case"):
+                st.session_state["req_domain"]="Customer"
+                st.session_state["req_Customer_name"]=case.alias_name
+                st.session_state["req_Customer_country"]=case.country
+                st.session_state["req_Customer_entity"]=case.entity
+                st.session_state["req_Customer_registration_number"]=case.registration_number
+                st.session_state["prepared_alias"]=case.alias_id
+                st.session_state["prepared_target"]=case.target_id
+                go("Master Data","Create request")
+                st.rerun()
+        st.caption("Review score is a prioritization heuristic—not a probability or proof of legal identity.")
+
+
 def master_data():
     portal_header("Master data workspace", "Create, track and approve clean customer and item records.")
     view = st.radio("Work area", WORK_VIEWS, key="workspace_view", horizontal=True,
                     label_visibility="collapsed")
     st.divider()
-    if view == "Create request":
+    if view == "Quality exceptions":
+        quality_exceptions()
+    elif view == "Create request":
         request_form()
     elif view == "Approval inbox":
         approval_inbox()
