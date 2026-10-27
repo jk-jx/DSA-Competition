@@ -4,12 +4,36 @@ from config import COUNTRIES,ENTITIES,settings,ROLE_ACTOR
 from dedup import find_matches
 from workflow import submit_request, WorkflowError
 from database import load_df
+from intake_parser import extract_message, classify_message
 
 def render(role):
     st.title('Smart Intake & Data Quality')
     st.write('Validate master-data requests before they enter stewardship approval. Customer and Item forms are functional; Vendor and Cost Center are configuration examples.')
+    with st.expander('Paste an email · classify and prefill',expanded=True):
+        pasted=st.text_area('Paste a synthetic email or request',key='pasted_email',
+            placeholder='Please create customer ABC Hospital under QTS in Singapore. Registration number: SG-REG-000001.')
+        use_llm=st.checkbox('Use configured Azure OpenAI extraction (optional)',value=False,
+            help='Rules-first works offline; Azure OpenAI requires a configured secret.')
+        if st.button('Classify and prefill form',disabled=not pasted.strip()):
+            try:
+                parsed=extract_message(pasted,use_llm=use_llm)
+                st.session_state['email_parsed']=parsed
+                for name,value in parsed['fields'].items():
+                    chosen=parsed['domain']
+                    if name in settings()['domains'].get(chosen,{}).get('fields',{}):
+                        st.session_state[f'{chosen}_{name}']=value
+                st.session_state['intake_domain']=parsed['domain']
+                st.rerun()
+            except Exception as exc:
+                st.error(f'Extraction failed: {exc}')
+        parsed=st.session_state.get('email_parsed')
+        if parsed:
+            st.success(f"Classified as {parsed['record_type']} using {parsed['method']}. Review all extracted fields before submission.")
+            st.json(parsed)
+            if parsed['record_type']!='MDM Setup':
+                st.warning('This is not a master-data setup request. A PO, purchasing request or enquiry must not enter the MDM approval queue.')
     cfg=settings()['domains']
-    domain=st.selectbox('Request domain',list(cfg),index=0)
+    domain=st.selectbox('Request domain',list(cfg),index=0,key='intake_domain')
     if cfg[domain].get('prototype_status')=='config_only':
         st.info(f'{domain} is configuration-ready, but its full field validation and SAP payload are outside this competition MVP. Try Customer or Item.')
         st.code(str(cfg[domain]),language='yaml'); return
@@ -58,7 +82,7 @@ def render(role):
     acknowledgement=True
     if matches and max(m['score'] for m in matches)>=settings()['matching']['review']:
         acknowledgement=st.checkbox('I reviewed the candidates and will send this for steward approval before any new SAP record is created.')
-    if st.button('Submit for approval',type='primary',disabled=bool(missing) or not acknowledgement):
+    if st.button('Submit for approval',type='primary',disabled=bool(missing) or not acknowledgement or bool(st.session_state.get('email_parsed') and st.session_state['email_parsed']['record_type']!='MDM Setup')):
         try:
             key=submit_request(domain,values,requester=ROLE_ACTOR[role],merge_source=source_id,merge_target=target_id)
             st.session_state['last_request']=key
