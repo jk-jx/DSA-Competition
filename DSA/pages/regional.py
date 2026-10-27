@@ -2,13 +2,12 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from config import COUNTRIES,ENTITIES
-from ui import next_step
+from ui import next_step, hero, panel
 from insights import (decision_impact,regional_summary,monthly,hero_customer,record_type_counts,transactions,
                       LATEST,DISPLAY_START)
 
 def render(role):
-    st.title('See the business impact of cleaner data')
-    st.info('Compare customer growth before and after approved matching. Regional order quantities should not change when identities are consolidated.')
+    hero('STEP 03 / DATA QUALITY IMPACT','From duplicate records to better decisions','See how approved customer identity matching changes growth assessments without changing actual order volumes.')
     st.caption(f'Synthetic purchase orders · Display: {DISPLAY_START} to {LATEST} · YoY comparison against the preceding 12 months')
     impact=decision_impact(); hero=hero_customer(); counts=record_type_counts()
     k1,k2,k3,k4=st.columns(4)
@@ -16,8 +15,8 @@ def render(role):
     k2.metric('Customers reclassified',f"{impact['changed']} / {impact['eligible']}")
     k3.metric('Approved aliases',int(len(__import__('database').load_df('SELECT alias_id FROM identity_map'))))
     k4.metric('Genuine PO lines',f"{counts.get('PO',0):,}")
-    st.info('Important: customer identity cleaning can change customer-level trends and decisions, but cannot increase total regional order volume merely by merging aliases.')
-    st.subheader('Featured customer: sales interpretation before vs after')
+    st.caption('Identity mapping changes attribution to customers, not the regional volume of confirmed orders.')
+    st.subheader('The decision that changes')
     x,y=st.columns(2)
     for col,label,p in [(x,'Raw customer identity',hero['raw']),(y,'Confirmed canonical identity',hero['cleaned'])]:
         with col:
@@ -34,7 +33,7 @@ def render(role):
     product=None if product=='All' else product
     entity=None if entity=='All' else entity
     summary=regional_summary(country,product,entity)
-    st.subheader('Country × product purchasing performance')
+    st.subheader('Regional purchasing performance')
     st.dataframe(summary.style.format({'YoY growth %':'{:+.1f}%'},na_rep='—'),use_container_width=True,hide_index=True)
     df=monthly(country,product)
     fig=px.line(df,x='period',y='qty',color='product',markers=True,title='Genuine purchase-order quantity by month',labels={'qty':'Units','period':'Order month','product':'Product'})
@@ -46,6 +45,6 @@ def render(role):
     st.subheader('Customer-level growth classifications')
     st.dataframe(customers.sort_values('latest',ascending=False).head(30),hide_index=True,use_container_width=True)
     next_step(3,'Continue to forecasts and recommendations →')
-    with st.expander('Data lineage and scope'):
+    with st.expander('About the numbers'):
         st.write(f"Orders are filtered to record_type='PO'. Excluded from demand analysis: {counts.get('Enquiry',0)} enquiries and {counts.get('Customer Request',0)} customer purchasing requests. Internal MDM requests are held in a separate table and never counted as orders.")
         st.write('Five locations (SG, MY, ID, TH, VN) and three business entities are illustrative assumptions. Raw transactions are preserved; approved customer mappings change attribution only.')
