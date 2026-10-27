@@ -5,12 +5,10 @@ from dedup import find_matches
 from workflow import submit_request, WorkflowError
 from database import load_df
 from intake_parser import extract_message
-from ui import next_step
+from ui import next_step, hero, panel, pill
 
 def render(role):
-    st.title('Submit a master-data request')
-    st.caption('Start with an email or enter the details yourself. The app checks for missing fields and duplicates before approval.')
-    st.info('Try the example: ABC Hospital · QTS · Singapore · SG-REG-000001. After submission, go to Review & approve.')
+    hero('STEP 01 / DATA INTAKE', 'A cleaner request starts here', 'Paste an email or choose the example. Verify the details and submit for approval in one guided flow.')
     a_demo,b_demo=st.columns([1,2])
     with a_demo:
         if st.button('Use sample duplicate request',use_container_width=True):
@@ -23,7 +21,7 @@ def render(role):
             st.rerun()
     with b_demo:
         st.caption('Or paste an email below to see automatic classification and field extraction.')
-    with st.expander('Paste an email · classify and prefill',expanded=True):
+    with st.expander('Extract details from an email',expanded=True):
         pasted=st.text_area('Paste a synthetic email or request',key='pasted_email',
             placeholder='Please create customer ABC Hospital under QTS in Singapore. Registration number: SG-REG-000001.')
         use_llm=st.checkbox('Use configured Azure OpenAI extraction (optional)',value=False,
@@ -59,16 +57,14 @@ def render(role):
                 field_rows = [{'Field': labels.get(key, key.replace('_', ' ').title()), 'Extracted value': value}
                               for key, value in parsed['fields'].items()]
                 st.dataframe(pd.DataFrame(field_rows), hide_index=True, use_container_width=True)
-            with st.expander('Technical details (JSON)', expanded=False):
-                st.json(parsed)
             if parsed['record_type']!='MDM Setup':
                 st.warning('This is not a master-data setup request. A PO, purchasing request or enquiry must not enter the MDM approval queue.')
     cfg=settings()['domains']
-    st.subheader('Review your request details')
+    st.subheader('Request details')
     domain=st.selectbox('Request domain',list(cfg),index=0,key='intake_domain')
     if cfg[domain].get('prototype_status')=='config_only':
         st.info(f'{domain} is configuration-ready, but its full field validation and SAP payload are outside this competition MVP. Try Customer or Item.')
-        st.code(str(cfg[domain]),language='yaml'); return
+        return
     a,b=st.columns([2,1])
     with a:
         values={}
@@ -84,13 +80,13 @@ def render(role):
     if domain=='Customer' and values.get('name','').strip():
         matches=find_matches(values['name'],domain,values['country'])
     with b:
-        st.subheader('Quality gate')
+        st.subheader('Quality check')
         missing=[i for i in cfg[domain]['required'] if not str(values.get(i,'')).strip()]
         if missing:st.warning('Missing: '+', '.join(missing))
         else:st.success('Required fields complete')
         if matches:
             st.warning(f'{len(matches)} candidate match(es) detected. A steward must confirm legal identity before a merge.')
-            st.dataframe(pd.DataFrame(matches)[['existing_name','customer_id','score','tier']],hide_index=True,use_container_width=True)
+            st.dataframe(pd.DataFrame(matches)[['existing_name','customer_id','score','tier']].rename(columns={'existing_name':'Existing customer','customer_id':'Record ID','score':'Similarity','tier':'Action'}),hide_index=True,use_container_width=True)
         elif values.get('name'):st.success('No high-scoring name matches in the selected country')
     source_id=target_id=None
     if domain=='Customer' and values.get('registration_number','').strip():
@@ -110,7 +106,7 @@ def render(role):
                 targets=[x for x in ids if x!=source_id]
                 canonical=[x for x in targets if x==rows[x]['canonical_truth_id']]
                 target_id=st.selectbox('Golden record to retain',targets,index=targets.index(canonical[0]) if canonical else 0,format_func=display)
-                st.info('Matching legal identifier is evidence for review, not automatic authority to merge.')
+                st.caption('Final identity mapping requires steward confirmation; no original orders are changed.')
     acknowledgement=True
     if matches and max(m['score'] for m in matches)>=settings()['matching']['review']:
         acknowledgement=st.checkbox('I reviewed the candidates and will send this for steward approval before any new SAP record is created.')
@@ -125,5 +121,5 @@ def render(role):
         st.info(f"Next: approve request {st.session_state['last_request']} using the guided roles on Step 2.")
         next_step(1,'Continue to review and approvals →')
     st.divider()
-    with st.expander('Why name similarity is not enough'):
+    with st.expander('How duplicate protection works'):
         st.write('Matching uses normalized names and fuzzy similarity. Similarity ≥90 triggers review; 75–89.9 warns; below 75 passes. The demo also compares legal/business identifiers before authorizing a customer mapping. False-positive near misses should never be merged automatically.')
