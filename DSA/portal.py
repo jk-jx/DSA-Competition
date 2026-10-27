@@ -168,7 +168,7 @@ def _example_request():
 
 def request_form():
     st.markdown("### New master-data request")
-    st.caption("Start with the sample case or paste an email. All requests are checked before they enter the approval queue.")
+    st.caption("Create a customer or item record, with duplicate protection built in.")
     left, right = st.columns([1, 2], vertical_alignment="center")
     with left:
         st.button("Use sample customer request", on_click=_example_request,
@@ -303,7 +303,7 @@ def request_form():
 
 def request_tracker():
     st.markdown("### Request tracker")
-    st.caption("A single view of what was submitted, who is reviewing and what has been completed.")
+    st.caption("Follow requests from submission to completion.")
     data = requests()
     if data.empty:
         st.info("No requests yet. Create a new master-data request.")
@@ -337,7 +337,7 @@ def _set_role(role):
 
 def approval_inbox():
     st.markdown("### Approval inbox")
-    st.caption("Independent data stewards review their assigned tasks before final MDM authorization.")
+    st.caption("Review assigned requests and track approval status.")
     req = requests()
     if req.empty:
         st.info("No requests available.")
