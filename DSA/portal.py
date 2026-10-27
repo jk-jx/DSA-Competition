@@ -11,7 +11,7 @@ import streamlit as st
 from config import COUNTRIES, ENTITIES, ROLE_ACTOR, settings
 from database import load_df
 from dedup import find_matches
-from forecast import backtest
+from forecast import backtest, forward_plan
 from insights import (
     DISPLAY_START, LATEST, cross_sell, customer_growth, decision_impact, identity_case_evidence,
     dropoff, hero_customer, monthly, record_type_counts, regional_summary,
@@ -619,6 +619,26 @@ def insights():
     holt = float(summary.loc[summary.model == "Holt-Winters", "WAPE %"].iloc[0])
     winner = "6-month moving average" if baseline <= holt else "Holt-Winters"
     st.caption(f"Best evaluated method: {winner}. No forecast improvement is claimed without measured evidence.")
+    st.markdown("### Forward purchasing plan · 6–12 months")
+    st.caption("Choose a market, product, forecast model and time horizon. Estimates use only genuine synthetic POs; planning scenarios are sensitivities, not statistical confidence intervals.")
+    p1,p2,p3,p4=st.columns(4)
+    with p1: f_country=st.selectbox("Market",list(COUNTRIES),format_func=lambda x:COUNTRIES[x],key="plan_market")
+    with p2: f_product=st.selectbox("Product",["A","B","C"],key="plan_product")
+    with p3: f_horizon=st.selectbox("Horizon",[6,12],format_func=lambda x:f"{x} months",key="plan_horizon")
+    with p4: f_model=st.selectbox("Model",summary.model.tolist(),key="plan_model")
+    plan=forward_plan(f_country,f_product,f_horizon,f_model)
+    n1,n2=st.columns([1,2])
+    with n1:
+        st.metric("Planned units",f"{int(plan['Forecast units'].sum()):,}")
+        st.caption("No purchase orders are automatically placed.")
+        st.download_button("Export purchasing plan (CSV)",plan.to_csv(index=False),
+                           file_name=f"purchasing_plan_{f_country}_{f_product}_{f_horizon}m.csv",
+                           mime="text/csv",use_container_width=True)
+    with n2:
+        st.line_chart(plan.set_index("Month")[["Forecast units","Low planning scenario","High planning scenario"]])
+    with st.expander("View monthly planning quantities"):
+        st.dataframe(plan,hide_index=True,use_container_width=True)
+
     a, b = st.columns(2)
     with a:
         st.markdown("#### Customer drop-off watchlist")
@@ -655,6 +675,22 @@ def administration():
     ]
     st.dataframe(pd.DataFrame(statuses, columns=["Service", "Status"]), hide_index=True, use_container_width=True)
     st.caption("No production credentials are needed for the competition walkthrough.")
+
+    st.markdown("### Illustrative operational savings calculator")
+    st.caption("Change the assumptions to estimate capacity released from faster, cleaner requests. This is not a measured production saving.")
+    a,b,c,d=st.columns(4)
+    with a: monthly_requests=st.number_input("Requests / month",min_value=0,max_value=10000,value=50,step=10)
+    with b: before_minutes=st.number_input("Minutes / request, before",min_value=1,max_value=1000,value=65)
+    with c: after_minutes=st.number_input("Minutes / request, after",min_value=1,max_value=1000,value=26)
+    with d: hourly_cost=st.number_input("Loaded labour cost (SGD / hour)",min_value=0,max_value=1000,value=40)
+    saved_minutes=max(0,before_minutes-after_minutes)*monthly_requests
+    hours=saved_minutes/60
+    x,y,z=st.columns(3)
+    x.metric("Monthly hours released",f"{hours:,.1f}")
+    y.metric("Illustrative monthly capacity",f"SGD {hours*hourly_cost:,.0f}")
+    z.metric("Illustrative annual capacity",f"SGD {hours*hourly_cost*12:,.0f}")
+    st.caption("This estimates staff time capacity only, not realized cost savings, ROI or an independently measured baseline.")
+    st.divider()
 
     st.markdown("### Approval routing matrix")
     matrix = load_df("SELECT entity,domain,country,steward,delegate,sla_days FROM approval_matrix ORDER BY entity,domain,country,steward")
