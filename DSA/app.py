@@ -2,9 +2,15 @@
 import streamlit as st
 from config import ROLE_ACTOR
 from generate_data import seed
+from sla import process_sla
 
 st.set_page_config(page_title='Master Data & Regional Intelligence',page_icon='📊',layout='wide')
 seed()
+# Check pending SLAs on each app interaction; an always-on deployment should schedule the same function.
+try:
+    process_sla(notify=True)
+except Exception:
+    pass  # The approval screen exposes delivery status; unavailable external services must not break the demo.
 st.markdown('''<style>
 [data-testid="stAppViewContainer"] {background: #ffffff;}
 h1 {font-weight: 760; letter-spacing: -0.03em;}
