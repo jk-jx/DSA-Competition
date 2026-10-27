@@ -4,11 +4,13 @@ from config import COUNTRIES,ENTITIES,settings,ROLE_ACTOR
 from dedup import find_matches
 from workflow import submit_request, WorkflowError
 from database import load_df
-from intake_parser import extract_message, classify_message
+from intake_parser import extract_message
+from ui import next_step
 
 def render(role):
-    st.title('Smart Intake & Data Quality')
-    st.write('Validate master-data requests before they enter stewardship approval. Customer and Item forms are functional; Vendor and Cost Center are configuration examples.')
+    st.title('Submit a master-data request')
+    st.caption('Start with an email or enter the details yourself. The app checks for missing fields and duplicates before approval.')
+    st.info('Try the example: ABC Hospital · QTS · Singapore · SG-REG-000001. After submission, go to Review & approve.')
     with st.expander('Paste an email · classify and prefill',expanded=True):
         pasted=st.text_area('Paste a synthetic email or request',key='pasted_email',
             placeholder='Please create customer ABC Hospital under QTS in Singapore. Registration number: SG-REG-000001.')
@@ -47,6 +49,7 @@ def render(role):
             if parsed['record_type']!='MDM Setup':
                 st.warning('This is not a master-data setup request. A PO, purchasing request or enquiry must not enter the MDM approval queue.')
     cfg=settings()['domains']
+    st.subheader('Review your request details')
     domain=st.selectbox('Request domain',list(cfg),index=0,key='intake_domain')
     if cfg[domain].get('prototype_status')=='config_only':
         st.info(f'{domain} is configuration-ready, but its full field validation and SAP payload are outside this competition MVP. Try Customer or Item.')
@@ -82,7 +85,7 @@ def render(role):
         if len(verified)>=2:
             st.subheader('Match and merge → golden record')
             st.caption('Two existing source records share a business identifier. Select the alias and retained record for human approval; historical orders are preserved.')
-            resolve=st.checkbox('Propose linking two existing identities (not creating another customer)',value=False)
+            resolve=st.checkbox('Link these verified duplicate records instead of creating a new customer',value=True,key='resolve_identity')
             if resolve:
                 rows=verified.set_index('customer_id').to_dict('index')
                 def display(cid): return f"{cid} · {rows[cid]['name']} ({rows[cid]['entity']})"
@@ -100,8 +103,11 @@ def render(role):
         try:
             key=submit_request(domain,values,requester=ROLE_ACTOR[role],merge_source=source_id,merge_target=target_id)
             st.session_state['last_request']=key
-            st.success(f'{key} submitted. Visit Page 2, switch to each steward role, then complete the MDM check.')
+            st.success(f'{key} submitted for independent steward review.')
         except WorkflowError as e:st.error(str(e))
+    if st.session_state.get('last_request'):
+        st.info(f"Next: approve request {st.session_state['last_request']} using the guided roles on Step 2.")
+        next_step(1,'Continue to review and approvals →')
     st.divider()
     with st.expander('Why name similarity is not enough'):
         st.write('Matching uses normalized names and fuzzy similarity. Similarity ≥90 triggers review; 75–89.9 warns; below 75 passes. The demo also compares legal/business identifiers before authorizing a customer mapping. False-positive near misses should never be merged automatically.')
