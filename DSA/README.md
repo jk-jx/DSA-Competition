@@ -1,104 +1,158 @@
-# Master Data & Regional Intelligence — Competition Operations Portal
+# Operations Portal — Workspace User Guide
 
-A unified Streamlit portal with five connected workspaces: **Overview, Master Data (including a Quality Exceptions work queue), Regional Performance, Insights & Forecasts, and Administration**. This prototype intentionally has no invented product brand name. It uses synthetic data and simulated roles, not a production ERP tenant.
+**SMU DSA Society 2026 Data Case Competition · Lives Group case**
 
-## Run locally
+The app demonstrates the solution in the original **DSA Competition (1).pdf**: validate new master-data records, investigate duplicate identities, route independent approvals, prepare an SAP-ready handoff, then use confirmed purchase orders and clean identities for better regional decisions.
 
-```bash
-python -m pip install -r requirements.txt
+**[Open the live portal](https://dsa-competition-4w84ptpcxfowwbvj5l3kkh.streamlit.app/)** · **[View the source repository](https://github.com/jk-jx/DSA-Competition)**
+
+> **Synthetic competition demonstration:** The portal uses Streamlit + SQLite, with simulated user roles and SAP/Outlook/Teams handoffs. It is not a production-secure enterprise system. Do not enter real customers, patient details, passwords or financial records.
+
+## Getting around
+
+The left sidebar has **five workspaces**:
+
+| Workspace | What employees do |
+| --- | --- |
+| **Overview** | Monitor pending reviews, quality exceptions and purchasing insights |
+| **Master Data** | Open **Quality exceptions**, **Request tracker**, **Create request** or **Approval inbox** |
+| **Regional Performance** | Explore five-country, product A/B/C purchases and customer identity impact |
+| **Insights & Forecasts** | Review actions, test three forecast models, create a 6/12-month plan and estimate potential hidden demand |
+| **Administration** | Inspect integrations, edit approval routing and examine illustrative time savings |
+
+The left-sidebar **Viewing as (demo role)** selector sets the simulated persona. **No in-page button or assistant shortcut changes roles.** The floating **✦ Ask Operations** guide gives optional context and navigation; it is not a generative AI chatbot.
+
+## Main judge demo: clean identity → correct business action
+
+The app starts with a seeded customer review, **RQ-0001**, for **ABC Hospital / Hospital ABC**. Use this rather than creating another request when recording a time-limited demonstration.
+
+1. Open **Overview**, then **Master Data → Quality exceptions**. See 25 synthetic candidate identity pairs and their purchasing exposure. Select the sample Singapore alias **SG-A001** to inspect its possible canonical record **SG-C001**. You may switch from table to the optional **3D identity network** (zoom/rotate/tooltips). This visualization proposes links; it does not merge records.
+2. Open **Master Data → Approval inbox** and select **RQ-0001**. Review the registered-identity evidence, PO history and pending reviewer tasks.
+3. In **Viewing as** (left sidebar), select **Finance Steward**. Open RQ-0001 and select **Approve request**.
+4. Change **Viewing as** to **BU Steward** and approve the same request.
+5. Change **Viewing as** to **MDM Steward**. When its status is **Approved**, select **Confirm and finalize**. It becomes **Created** and records a safe-retry, SAP-ready mock handoff.
+6. Visit **Regional Performance**. Before approved matching, Hospital ABC's primary ID falls from **100 → 60 units (−40%)**. The alias adds **60 units** in the latest period; **after** verified consolidation the same account is **100 → 120 units (+20%)**. No source PO transaction or country-level total is changed.
+7. Visit **Insights & Forecasts**. Examine the changing account recommendation, the three PO-only model backtests, contamination ablation, 6/12-month demand planner and **Export purchasing plan (CSV)**.
+
+**Measurement:** the seeded approved reconciliation reclassifies **1 of 233 eligible comparable canonical customers (about 0.43%)**. Before MDM finalization the +20% view is clearly an **unapproved scenario**, not live consolidated analytics.
+
+**Reset carefully:** **Reset demonstration** in the sidebar restores the original seeded data and RQ-0001. The public SQLite database may be shared across visitors and is not durable across hosting restarts. A reset can interrupt another person's work.
+
+## How to use each workspace
+
+### Master Data → Quality exceptions
+
+- Filter by **Market** and **Case status**. The queue displays alias ID, proposed golden record, country, review priority, possible decision-category change, and purchase-order exposure.
+- Choose a candidate under **Inspect candidate**, then select **Prepare customer review** to prefill **Create request** with its identity details. Independently confirm the suggested identifiers and retained record before submitting.
+- The queue's 25 seeded candidate pairs rely partly on synthetic known reference relationships. **This is not a measured real-world duplicate-detection recall rate.** Fuzzy name matching is separate and never auto-merges real companies.
+
+### Master Data → Create request
+
+1. Choose **Quick form** or **From email** under **Intake channel**.
+2. Select **Customer** or **Item** (fully functional). **Vendor** and **Cost Center** are configuration-only examples.
+3. Enter the required domain fields. For customers, similarity suggestions and verified-registration comparisons can propose linking an existing alias to a retained/golden record.
+4. Tick the details confirmation and select **Submit for approval**. Open **Request tracker** to follow the resulting RQ-numbered case.
+
+**Email simulation:** Choose **From email**, paste a synthetic message and select **Extract and prefill**. Rules-first extraction works offline. **Use configured Azure OpenAI extraction** requires separate authorized credentials. **Email routing & response simulation** previews how an MDM mailbox would classify the message, send a proposed reply, observe a two-week grace period or enable authorized MDM override. **It does not send Outlook mail or create Teams Adaptive Cards.**
+
+Example email:
+
+> Please create customer ABC Hospital under QTS in Singapore. Registration number: SG-REG-000001.
+
+**Record categories remain distinct:** confirmed PO, customer purchasing request, enquiry and internal MDM setup. Only setup messages can enter the MDM approval workflow.
+
+### Master Data → Request tracker and Approval inbox
+
+The tracker provides request IDs, originators, domain, market and status. The inbox adapts to the chosen demo persona:
+
+| Sidebar persona | Available work |
+| --- | --- |
+| **Requestor** | Review own submitted requests and current status |
+| **Finance Steward** | Customer domain decisions assigned to Finance |
+| **BU Steward** | Business-unit review alongside Finance or Quality |
+| **Quality Steward** | Item domain decisions assigned to Quality |
+| **MDM Steward** | Final validation after all assigned stewards approve |
+| **Admin** | Maintain approval rules in Administration |
+
+Eligible stewards see **Approve request** and **Reject request**; other users see only the case status. Customer requests use **Finance + BU**; Item uses **Quality + BU**, both with final **MDM validation**. Maker-checker separation prevents the requestor approving their own request.
+
+Statuses: **Submitted → In Approval → Approved → Created** or **Rejected**. Expand **Approval deadlines**, **Audit history**, or **ERP handoff** to inspect supporting information. SLA events are idempotent; unattended real reminders would require an external scheduler.
+
+The mock ERP handoff is exportable JSON with a stable request ID. Real SAP creation is *not* part of the public walkthrough, and local identity links are not live SAP Business Partner merges.
+
+### Regional Performance
+
+Filter by country, Product **A/B/C**, and business unit. Review recent confirmed PO trend, year-on-year comparison and the identity impact. The evidence panel provides a six-month source-order breakdown for Hospital ABC and shows **current vs unapproved/approved consolidated** growth. A verified mapping changes account attribution, not the original physical order quantities.
+
+The five selected markets — **Singapore, Malaysia, Indonesia, Thailand and Vietnam** — are **project assumptions**; the Lives Group brief specifies five country locations without naming them.
+
+### Insights & Forecasts
+
+- **Confirmed purchase orders only** feed valid forecasts. The dataset also includes **700 enquiries** and **300 customer purchasing requests**, excluded from PO demand. MDM requests are in their own workflow table.
+- Compare **six-month moving average**, **Holt–Winters** and **pooled gradient boosting** over the **same 45 held-out country × product × month observations**. **Lower WAPE is better.** There is no assumed winner.
+- The **unfiltered-input ablation** deliberately contaminates model training with quantities from enquiries/customer requests, but evaluates against **confirmed PO actuals**. It is a diagnostic run, not a purchasable forecast. MDM setups have no transaction quantity and are not invented as orders.
+- Create a plan by selecting **Market**, **Product A/B/C**, **6 or 12 months** and one of the **three valid PO-only models**. Review low/base/high *planning scenarios* and select **Export purchasing plan (CSV)**. Scenarios are sensitivity bands, not confidence intervals.
+- Explore drop-off and cross-sell candidates; these are **rules-based recommendations**, not automated customer decisions.
+- Adjust the **Demand visibility** assumptions — days waiting, share needing a PO and illustrative PO value — to estimate *potential* delayed-order exposure. The dataset does not link setup requests to actual blocked orders. **This is not measured lost revenue.**
+- The classifier benchmark uses a **small, curated synthetic labelled dataset**; it is not a claim about actual Outlook or LLM precision.
+
+### Administration
+
+View optional connector status and the **Approval routing matrix** keyed by entity, domain and country. In the **Admin** demo role, use **Add a new routing rule** to configure a business unit, steward and working-day SLA without editing code.
+
+Change the **Illustrative operational savings** assumptions. Defaults: **50 requests/month**, **65 minutes before**, **26 minutes after**, **S$40/hour** → **32.5 hours/month** or **S$1,300/month in gross staff capacity**, not realized cash savings or verified ROI.
+
+## FAQ and troubleshooting
+
+| Problem | Check |
+| --- | --- |
+| Extra page links labelled app/actions/approvals/intake/regional | Refresh or reboot; the unified entry point hides Streamlit's legacy auto-generated navigation |
+| Approve button unavailable | Correct role in **Viewing as**; selected request must be **In Approval** with a task assigned to that steward |
+| Case has already been finalized | Inspect a different case, or reset only when other visitors are not using the shared demo |
+| +20% appears as a preview | Both stewards **and** MDM must finalize before it becomes live consolidated analytics |
+| Azure OpenAI extraction unavailable | Switch to rules-first extraction |
+| No automatic Outlook / Teams / SAP activity | These integrations are **demonstrated as simulations** by default, not connected corporate services |
+| Forecast takes time on first visit | Three-model chronological backtesting can require an initial calculation; subsequent results are cached |
+
+## Install and validate locally
+
+From the repository root:
+
+~~~bash
+cd DSA
+python -m pip install -r requirements.txt pytest
 python generate_data.py --reset
 streamlit run app.py
-```
+~~~
 
-Or start `streamlit run app.py` directly: it creates the synthetic SQLite database if missing.
+Automated tests:
 
-## Judge demonstration: a business decision corrected by clean data
-
-Start with **Master Data → Quality exceptions** to triage all 25 synthetic candidate identity pairs. Filter by market/status, inspect source business identifiers and purchase-order exposure, and prepare a governed review from the candidate record. Candidates remain unverified until steward/MDM approval. The seeded RQ-0001 is a convenient preexisting review for the featured case.
-
-1. Open **Overview** and **Regional Performance**. Hospital ABC's primary source record appears **−40%**. The **Decision evidence** panel shows the verified identifier candidates and an explicitly unapproved **+20%** what-if preview based on actual synthetic PO source rows.
-2. Open **Master Data → Approval inbox** and select seeded **RQ-0001**. Review the same identity evidence, assigned stewards and audit history. Change your simulated persona **only in the left sidebar's “Viewing as” selector**.
-3. As **Finance Steward**, approve. As **BU Steward**, approve independently. As **MDM Steward**, confirm and finalize. The request becomes **Created** and an idempotent, mock SAP handoff is recorded; no production SAP record is written.
-4. Return to **Regional Performance**. The consolidated growth becomes **+20%** in actual approved analytics; the original source PO rows and regional total volumes remain unchanged. The customer recommendation changes from drop-off investigation to growth opportunity.
-5. Open **Insights & Forecasts**. Compare honest WAPE backtests, build a selectable **6 or 12-month country × product purchasing plan**, and export it as CSV. Planning bounds are sensitivity scenarios, not statistical confidence intervals.
-6. In **Administration**, explore the editable routing rules and the **assumption-based operational savings calculator**. Show the clearly labeled difference between simulation, test-backed outcomes and unvalidated production business assumptions.
-7. The bottom-right **Operations Assistant** provides guidance and navigation without changing roles. Email extraction, duplicate matching, SLA escalation, audit history and enterprise connector status are additional demonstrable features.
-
-Use **Reset demonstration** in the sidebar before recording. The public SQLite state can be shared between sessions and is not a durable enterprise store.
-
-## Implementation
-
-| File | Responsibility |
-|---|---|
-| `generate_data.py` | Seed deterministic 36-month synthetic purchase-order and identity data |
-| `database.py` | SQLite tables; append-only audit trigger; unique mock SAP request key |
-| `domains.yaml` | Field and domain routing defaults, fuzzy matching tiers |
-| `dedup.py` | Candidate detection using normalized fuzzy names |
-| `workflow.py` | Maker–checker, concurrent approvals, verified merge and idempotent handoff |
-| `insights.py` | Five-country ordering, YoY growth, customer category changes, cross-selling |
-| `forecast.py` | Matched rolling-origin WAPE: moving average vs Holt–Winters |
-| `portal.py` | Unified operations portal, guided stewardship and decision-evidence views |
-| `assistant_guide.py` | Contextual navigation assistant that never changes user roles |
-| `quality_monitor.py` | Ranked master-data exception queue, source evidence and governance statuses |
-| `forecast_ml.py` | Pooled regional gradient boosting and PO-only vs contaminated-input matched holdout comparison |
-| `hidden_demand.py` | Explicitly assumption-based pending-setup demand visibility estimate |
-| `email_routing.py` | Outlook-style classification, graceful transition and human MDM override reply previews |
-| `ui.py` | Shared portal styling and UI components |
-| `tests/` | Workflow and analytics acceptance tests |
-
-## Measurement and data accuracy
-
-- **Genuine customer purchase orders** are kept separate from customer purchasing requests, general enquiries and internal MDM requests.
-- Synthetic PO dataset: **36 months, 5 countries (SG, MY, ID, TH, VN), 3 products (A/B/C), 300 canonical customers + 25 aliases, 6,000 PO lines**, with a **12-month display** and preceding 12 months for YoY.
-- Headline **Data Quality Decision Impact** = canonical customers whose growth category changes after approved identity mapping / eligible comparable canonical customers × 100. Categories use the latest 3 vs preceding 3 months (growing >5%, declining <−5%). Show numerator and denominator.
-- Historical order rows are **never edited** by identity matching; mapping is an audited reference table. Regional total PO volume stays constant after a merge.
-- **Forecast comparison** uses 3 one-step-ahead rolling-origin evaluations across 15 country-product series, on identical confirmed PO actual values. A six-month moving average, Holt–Winters and pooled gradient boosting are assessed alongside a deliberately contaminated input run (PO + enquiry + customer purchasing request quantities). MDM setup records contain no order quantity and are *not* fabricated as forecast inputs. Users can export six- or twelve-month PO outlooks; sensitivity bounds are not calibrated confidence intervals. Never claim an ML improvement without the observed WAPE result. Customer-identity reconciliation changes account attribution, not region/product PO totals.
-- Similarity ≥90 is review, 75–89.9 is warning, below 75 is pass; actual legal identity verification is required before merging.
-
-## Limitations and controls
-
-- **Simulation, not a production system.** Role switcher is not authentication. Never use real customer names, bank numbers or financial details. Approvals and audit events are local; deployment may reset the database when the hosting environment restarts.
-- Customer and Item forms are implemented; Vendor and Cost Center are configuration stubs. Sensitive fields should be restricted to Finance/MDM in a production SharePoint/Dataverse store.
-- Final SAP handoff creates a JSON payload locally, **not** an ERP record. The payload contains a request ID, and the mock SAP table enforces one record per request. Identity-resolution requests generate a linkage payload rather than creating another customer. Production SAP integration needs proper access, reconciliation and retries.
-- The proposed production architecture uses M365 Power Apps, Power Automate, Teams, restricted SharePoint/Dataverse storage and SAP B1 Service Layer, subject to licensing and security review.
-- Azure OpenAI extraction and Teams webhook notifications are implemented as opt-in connectors, with an always-available rules-first fallback. A guarded SAP B1 Service Layer adapter is implemented; it never writes without configured credentials and explicit authorization. The unfiltered-input ablation, pooled gradient-boosted model, illustrative hidden-demand sensitivity model, and Outlook-style auto-reply/grace-period/MDM-override simulation are included. A geographically plotted regional map and actual setup-to-order linkage remain extensions.
-
-## How the prototype follows the uploaded base PDF
-
-The authoritative base is **DSA Competition (1).pdf**, not the optional portal styling. Its sequence is preserved: requestor form or email → classified intake / quality checks → rule-driven steward approval → MDM validation → SAP-ready payload → regional PO-only intelligence.
-
-- **Page 3:** mocked SharePoint-style status, audit, and approval matrix; email extraction and optional Azure OpenAI; mock SAP payload.
-- **Page 4:** forecasting now includes baseline, Holt–Winters and pooled gradient boosting on the same 15 regional series; ablation contaminates training with enquiries/customer purchasing requests but always scores against actual POs. A sensitivity-only hidden-demand model estimates *potential*, not observed, delayed order exposure.
-- **Pages 4–5:** cross-selling/drop-off signals, actionable regional country × product views and adoption assumptions.
-- **Pages 2 and 6:** Power Apps/Power Automate/Teams/SharePoint/SAP B1 is the **proposed production architecture**. Live corporate Outlook mailbox interception, Teams Adaptive Cards, secure Finance roles and SAP pushes cannot be represented as connected in the public demo without real tenant access.
-
-## Email automation, SLAs and enterprise connection settings
-
-- The Master Data intake workspace accepts pasted emails, distinguishes **confirmed PO / Customer Request / Enquiry / MDM Setup**, extracts domain fields, and pre-fills the intake form. Only setup requests may enter the MDM queue. The rules-first parser works without credentials.
-- Optional Azure OpenAI extraction: set `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT`, `AZURE_OPENAI_API_KEY` and optionally `AZURE_OPENAI_API_VERSION` in Streamlit secrets. The user opts in by selecting the Azure OpenAI checkbox; extracted values must be reviewed before submission.
-- The Approval Inbox computes working-day approval SLAs, due-soon reminders and overdue delegations. The app evaluates the queue on interactions; an unattended deployment should run `sla.process_sla(notify=True)` on a server schedule. Set `TEAMS_WEBHOOK_URL` to an authorized workflow endpoint to dispatch nonsensitive Teams notifications.
-- SAP B1 test-system dispatch is available to the MDM steward only after completing the maker-checker approvals. Set `SAP_B1_SERVICE_LAYER_URL`, `SAP_B1_COMPANY_DB`, `SAP_B1_USERNAME`, `SAP_B1_PASSWORD` as deployment secrets. This uses SAP B1 Service Layer login/session authentication. Only basic Business Partner and Item create mappings are implemented; identity linking stays a local golden-record mapping until an approved SAP update mapping is provided. Unknown network outcomes are marked **pending reconciliation** rather than automatically retried. Real SAP integration is **not validated without an authorized test tenant**.
-- A Streamlit role switcher is **not real authorization**. Do not configure live production SAP credentials on a public competition demo. Use a dedicated secured deployment with proper authentication for any real record creation.
-
-## Deploy to Streamlit Community Cloud
-
-1. Push these files into a GitHub repository. **Do not commit personal data or API tokens.**
-2. In Streamlit Community Cloud select **Create app**, choose your repo/branch, set entrypoint `DSA/app.py`, then deploy.
-3. Share the live app and public repository URL with the judges. Community Cloud's local SQLite may be ephemeral; for a demo, use the reset button before filming and do not depend on persistence across restarts.
-
-## Competition handoff checklist
-
-- Verify all five portal workspaces on the live hosted app, including the forecast export and steward transitions. Reset before filming.
-- Update the two-page report with the measured reclassification rate and actual WAPE; do not claim that Holt–Winters wins unless it does.
-- Upload the 2–3-minute YouTube walkthrough and include the video, repository, and live app links in the report.
-- The dataset, email/Teams response preview and SAP-ready export are simulated; this is not a live Outlook, Teams Approvals or SAP connection.
-- The role switcher is illustrative only: never enter real sensitive, banking, customer or patient data.
-- Streamlit Community Cloud's SQLite may be ephemeral and shared across visitors; this is not production persistence.
-
-## Validation
-
-```bash
+~~~bash
+cd DSA
 python -m pytest -q
-```
+~~~
 
-`data/demo.sqlite` is generated automatically and excluded from git. The reproducible seed script is the dataset source.
+**Streamlit deployment settings:** repo **jk-jx/DSA-Competition**, branch **main**, entry point **DSA/app.py**.
+
+Optional secret names (never commit credentials): **AZURE_OPENAI_ENDPOINT**, **AZURE_OPENAI_DEPLOYMENT**, **AZURE_OPENAI_API_KEY**, **TEAMS_WEBHOOK_URL**, **SAP_B1_SERVICE_LAYER_URL**, **SAP_B1_COMPANY_DB**, **SAP_B1_USERNAME**, **SAP_B1_PASSWORD**. An authorized external scheduler is needed for unattended SLA notifications. **Never connect production SAP credentials to the public demo.**
+
+## The PDF is the base — prototype vs production
+
+| Current synthetic implementation | Original PDF's proposed enterprise deployment |
+| --- | --- |
+| Streamlit forms, role selector and PO dashboards | Power Apps / Power BI with authentic corporate user accounts |
+| SQLite statuses, routing matrix and append-only audit events | SharePoint Lists or Dataverse, with restricted Finance/MDM data |
+| In-app approval, reminders and mock notifications | Power Automate, Teams Approvals / Adaptive Cards and escalations |
+| Pasted emails, rules-first/optional AI extraction, response preview | Shared Outlook mailbox interceptor, prefilled draft and controlled transition |
+| RapidFuzz + human matching review | SAP-backed matching service / Azure Function with steward validation |
+| Stable SAP-ready JSON and mock ledger | SAP Business One Service Layer and production reconciliation controls |
+
+**Working in the demo:** Customer/Item intake, independent approvals, audit and routing, prioritized synthetic identity exceptions, 3D exploration, customer decision change, regional PO analytics, three models + ablation, 6/12-month export, email response/grace-period simulation and hidden-demand scenario.
+
+**Not proven:** live enterprise authentication, real mail/Teams/SAP tenancy, production-sensitive-field protections, full Vendor/Cost Center forms, actual unknown-duplicate detection accuracy, real postponed orders, production time savings, or financial payback. The uploaded **DSA Competition (1).pdf** remains the authoritative solution design.
+
+## Competition deliverables
+
+Submit the **final two-page report (or two slides)**, **functioning prototype**, **public GitHub code**, and **2–3 minute YouTube demo**. Verify the live walkthrough and report claims, then insert the *real* YouTube URL before submission.
+
+**Qualifying deadline: 28 October 2026, 12 PM Singapore time.**
