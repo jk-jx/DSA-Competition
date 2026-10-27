@@ -113,14 +113,14 @@ def suggestion(section, workspace, role, request, pending, resolved):
                         "Independent stewards can approve in any order; final MDM checking follows both.",
                     )
                 return GuideState(
-                    f"{key} is waiting for {pending[0]}. Switch to that steward's demo role to review it.",
-                    f"View as {pending[0]}", "Master Data", "Approval inbox", pending[0], key,
-                    "This role selector demonstrates the workflow; it is not production authentication.",
+                    f"{key} is awaiting a decision from {pending[0]}. Role changes are available only in the sidebar.",
+                    "Open approval inbox", "Master Data", "Approval inbox", pending[0], key,
+                    "The sidebar role selector is for demonstration only, not production authentication.",
                 )
             if request["status"] == "Approved":
                 return GuideState(
                     f"{key} has all its steward approvals. The MDM steward can now confirm the golden-record mapping.",
-                    "Continue as MDM Steward", "Master Data", "Approval inbox", "MDM Steward", key,
+                    "Open final-review status", "Master Data", "Approval inbox", "MDM Steward", key,
                 )
             if request["status"] == "Created":
                 return GuideState(
@@ -141,7 +141,7 @@ def suggestion(section, workspace, role, request, pending, resolved):
         if not resolved:
             return GuideState(
                 "Hospital ABC currently appears to be declining because its orders are split across two customer identities.",
-                "Resolve the identity review", "Master Data", "Approval inbox", "Finance Steward", key,
+                "Open identity review", "Master Data", "Approval inbox", None, key,
                 "Cleaning customer identities does not increase regional purchase-order totals.",
             )
         return GuideState(
@@ -154,7 +154,7 @@ def suggestion(section, workspace, role, request, pending, resolved):
         if not resolved:
             return GuideState(
                 "Some account-level recommendations are incomplete until the duplicate customer is reviewed.",
-                "Finish the review", "Master Data", "Approval inbox", "Finance Steward", key,
+                "Open pending review", "Master Data", "Approval inbox", None, key,
             )
         return GuideState(
             "The verified customer is growing. Consider an expansion conversation, and use measured WAPE to choose a forecast baseline.",
@@ -186,8 +186,6 @@ def _navigate(target):
     st.session_state["portal_section"] = target.section
     if target.workspace:
         st.session_state["workspace_view"] = target.workspace
-    if target.role:
-        st.session_state["portal_role"] = target.role
     if target.request:
         st.session_state["chosen_request"] = target.request
 
