@@ -4,6 +4,7 @@ from generate_data import seed
 from sla import process_sla
 from ui import style
 from portal import SECTIONS, render
+from assistant_guide import render_assistant
 
 st.set_page_config(page_title="Operations | Master Data & Regional Insights",
                    page_icon="◈",layout="wide",initial_sidebar_state="expanded")
@@ -60,3 +61,4 @@ with st.sidebar:
     st.caption("Synthetic case data · Role switching simulates access. No production ERP connection is needed.")
 
 render()
+render_assistant()
