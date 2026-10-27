@@ -713,10 +713,22 @@ def regional():
 
 
 @st.cache_data(show_spinner="Evaluating forecasts on matched historical periods…")
+@st.cache_data(ttl=3600, max_entries=1, show_spinner="Evaluating models using confirmed purchase orders…")
 def forecast_results():
-    # Avoid loading statsmodels/scikit-learn during initial portal startup.
+    """The 36-month synthetic PO history is unchanged by identity approvals.
+
+    Cache shared validation results: 45 Holt-Winters fits and six pooled ML
+    fits should never repeat on every user click or browser session.
+    """
     from forecast import backtest
     return backtest()
+
+
+@st.cache_data(ttl=3600, max_entries=24, show_spinner=False)
+def purchasing_plan(country, product, horizon, method):
+    """Reuse identical synthetic forecast plans across sessions/reruns."""
+    from forecast import forward_plan
+    return forward_plan(country, product, horizon, method)
 
 
 def insights():
@@ -786,8 +798,7 @@ def insights():
     with p2: f_product=st.selectbox("Product",["A","B","C"],key="plan_product")
     with p3: f_horizon=st.selectbox("Horizon",[6,12],format_func=lambda x:f"{x} months",key="plan_horizon")
     with p4: f_model=st.selectbox("Model",ranked.model.tolist(),key="plan_model")
-    from forecast import forward_plan
-    plan=forward_plan(f_country,f_product,f_horizon,f_model)
+    plan=purchasing_plan(f_country,f_product,f_horizon,f_model)
     n1,n2=st.columns([1,2])
     with n1:
         st.metric("Planned units",f"{int(plan['Forecast units'].sum()):,}")
