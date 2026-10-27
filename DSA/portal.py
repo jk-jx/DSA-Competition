@@ -730,7 +730,8 @@ def insights():
     summary, history = forecast_results()
     st.caption("Rolling-origin evaluation on exactly the same confirmed PO actuals; lower WAPE is better.")
     a, b = st.columns(2)
-    for col, row in zip((a, b), summary.itertuples(index=False)):
+    baseline_rows=summary[summary.model.isin(["6-month moving average","Holt-Winters"])]
+    for col, row in zip((a, b), baseline_rows.itertuples(index=False)):
         with col:
             st.metric(row.model, f"{float(summary.loc[summary.model==row.model, 'WAPE %'].iloc[0]):.2f}% WAPE")
     st.plotly_chart(px.bar(summary, x="model", y="WAPE %", text="WAPE %",
@@ -740,15 +741,20 @@ def insights():
                     use_container_width=True)
     baseline = float(summary.loc[summary.model == "6-month moving average", "WAPE %"].iloc[0])
     holt = float(summary.loc[summary.model == "Holt-Winters", "WAPE %"].iloc[0])
-    winner = "6-month moving average" if baseline <= holt else "Holt-Winters"
-    st.caption(f"Best evaluated method: {winner}. No forecast improvement is claimed without measured evidence.")
+    ranked=summary[summary.model!="Unfiltered training (ablation)"].sort_values("WAPE %")
+    winner=ranked.iloc[0]["model"]
+    st.caption(f"Lowest measured PO-only WAPE: {winner}. The unfiltered series is a diagnostic ablation, not a valid ordering forecast.")
+    ablation=summary[summary.model=="Unfiltered training (ablation)"]
+    if not ablation.empty:
+        st.metric("Unfiltered-input WAPE (contamination test)",f"{float(ablation.iloc[0]['WAPE %']):.2f}%")
+        st.caption("This test deliberately trains on PO + enquiry + customer purchasing-request quantities; its holdout is genuine PO demand. MDM setups contain no order quantity and are not invented as transactions.")
     st.markdown("### Forward purchasing plan · 6–12 months")
     st.caption("Choose a market, product, forecast model and time horizon. Estimates use only genuine synthetic POs; planning scenarios are sensitivities, not statistical confidence intervals.")
     p1,p2,p3,p4=st.columns(4)
     with p1: f_country=st.selectbox("Market",list(COUNTRIES),format_func=lambda x:COUNTRIES[x],key="plan_market")
     with p2: f_product=st.selectbox("Product",["A","B","C"],key="plan_product")
     with p3: f_horizon=st.selectbox("Horizon",[6,12],format_func=lambda x:f"{x} months",key="plan_horizon")
-    with p4: f_model=st.selectbox("Model",summary.model.tolist(),key="plan_model")
+    with p4: f_model=st.selectbox("Model",ranked.model.tolist(),key="plan_model")
     plan=forward_plan(f_country,f_product,f_horizon,f_model)
     n1,n2=st.columns([1,2])
     with n1:
@@ -782,7 +788,7 @@ def insights():
         else:
             st.caption("No accounts trigger the current rule.")
     with st.expander("Methodology"):
-        st.caption("36 months of synthetic data, 15 country–product series, three matched monthly forecasting origins. Holt–Winters is evaluated against a six-month moving average. Recommendations are rule-based and must be checked by sales teams.")
+        st.caption("36 months of synthetic data, 15 country–product series, three matched monthly forecasting origins. Six-month moving average, Holt–Winters and pooled gradient boosting are evaluated on the same PO holdout; a fourth run uses contaminated input as an ablation. Recommendations are rule-based and must be checked by sales teams.")
         st.dataframe(summary, hide_index=True, use_container_width=True)
 
 
