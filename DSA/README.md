@@ -1,158 +1,163 @@
-# Operations Portal — Workspace User Guide
+# Operations Portal — User Guide
 
-**SMU DSA Society 2026 Data Case Competition · Lives Group case**
+Welcome to the Operations Portal. This guide explains how to manage master-data requests, review customer records, follow approvals, and explore purchasing insights.
 
-The app demonstrates the solution in the original **DSA Competition (1).pdf**: validate new master-data records, investigate duplicate identities, route independent approvals, prepare an SAP-ready handoff, then use confirmed purchase orders and clean identities for better regional decisions.
+**[Open the Operations Portal](https://dsa-competition-4w84ptpcxfowwbvj5l3kkh.streamlit.app/)**
 
-**[Open the live portal](https://dsa-competition-4w84ptpcxfowwbvj5l3kkh.streamlit.app/)** · **[View the source repository](https://github.com/jk-jx/DSA-Competition)**
+## Get started
 
-> **Synthetic competition demonstration:** The portal uses Streamlit + SQLite, with simulated user roles and SAP/Outlook/Teams handoffs. It is not a production-secure enterprise system. Do not enter real customers, patient details, passwords or financial records.
+Use the navigation menu on the left to move between workspaces. The **Viewing as** control identifies the role currently being displayed. In this demonstration environment, it lets you see how the workspace works for different types of employees.
 
-## Getting around
-
-The left sidebar has **five workspaces**:
-
-| Workspace | What employees do |
+| Workspace | What you can do |
 | --- | --- |
-| **Overview** | Monitor pending reviews, quality exceptions and purchasing insights |
-| **Master Data** | Open **Quality exceptions**, **Request tracker**, **Create request** or **Approval inbox** |
-| **Regional Performance** | Explore five-country, product A/B/C purchases and customer identity impact |
-| **Insights & Forecasts** | Review actions, test three forecast models, create a 6/12-month plan and estimate potential hidden demand |
-| **Administration** | Inspect integrations, edit approval routing and examine illustrative time savings |
+| **Overview** | Check current requests, outstanding reviews, data-quality issues and key business indicators. |
+| **Master Data** | Investigate suspected duplicates, create requests, track progress and review approvals. |
+| **Regional Performance** | Explore purchasing trends by country, product and business unit. |
+| **Insights & Forecasts** | Compare forecasting methods, produce purchasing plans and review customer opportunities. |
+| **Administration** | View system settings, approval routing and operational estimates. |
 
-The left-sidebar **Viewing as (demo role)** selector sets the simulated persona. **No in-page button or assistant shortcut changes roles.** The floating **✦ Ask Operations** guide gives optional context and navigation; it is not a generative AI chatbot.
+Need help while working? Select **✦ Ask Operations** in the bottom-right corner for contextual guidance and shortcuts to relevant workspaces.
 
-## Main judge demo: clean identity → correct business action
+## Manage master data
 
-The app starts with a seeded customer review, **RQ-0001**, for **ABC Hospital / Hospital ABC**. Use this rather than creating another request when recording a time-limited demonstration.
+### Find and investigate duplicate records
 
-1. Open **Overview**, then **Master Data → Quality exceptions**. See 25 synthetic candidate identity pairs and their purchasing exposure. Select the sample Singapore alias **SG-A001** to inspect its possible canonical record **SG-C001**. You may switch from table to the optional **3D identity network** (zoom/rotate/tooltips). This visualization proposes links; it does not merge records.
-2. Open **Master Data → Approval inbox** and select **RQ-0001**. Review the registered-identity evidence, PO history and pending reviewer tasks.
-3. In **Viewing as** (left sidebar), select **Finance Steward**. Open RQ-0001 and select **Approve request**.
-4. Change **Viewing as** to **BU Steward** and approve the same request.
-5. Change **Viewing as** to **MDM Steward**. When its status is **Approved**, select **Confirm and finalize**. It becomes **Created** and records a safe-retry, SAP-ready mock handoff.
-6. Visit **Regional Performance**. Before approved matching, Hospital ABC's primary ID falls from **100 → 60 units (−40%)**. The alias adds **60 units** in the latest period; **after** verified consolidation the same account is **100 → 120 units (+20%)**. No source PO transaction or country-level total is changed.
-7. Visit **Insights & Forecasts**. Examine the changing account recommendation, the three PO-only model backtests, contamination ablation, 6/12-month demand planner and **Export purchasing plan (CSV)**.
+Open **Master Data → Quality exceptions**.
 
-**Measurement:** the seeded approved reconciliation reclassifies **1 of 233 eligible comparable canonical customers (about 0.43%)**. Before MDM finalization the +20% view is clearly an **unapproved scenario**, not live consolidated analytics.
+1. Use the **Market** and **Case status** filters to find records requiring attention.
+2. Review each candidate's priority, proposed matching record and purchase-order exposure.
+3. Choose a record under **Inspect candidate** to view its details and matching business identifier.
+4. To open a new review, select **Prepare customer review**. The customer form opens with the available details prefilled.
+5. Verify the information, choose the appropriate retained record if applicable, and submit the request for approval.
 
-**Reset carefully:** **Reset demonstration** in the sidebar restores the original seeded data and RQ-0001. The public SQLite database may be shared across visitors and is not durable across hosting restarts. A reset can interrupt another person's work.
+You can also switch to **3D identity network** to explore proposed relationships visually. Rotate or zoom the network, or point to a record for more information. This view helps investigate relationships; it does **not** automatically merge records.
 
-## How to use each workspace
+**Important:** A suggested duplicate is not a confirmed match. A record is linked to another identity only after the required approvals and final master-data validation.
 
-### Master Data → Quality exceptions
+### Create a new customer or item request
 
-- Filter by **Market** and **Case status**. The queue displays alias ID, proposed golden record, country, review priority, possible decision-category change, and purchase-order exposure.
-- Choose a candidate under **Inspect candidate**, then select **Prepare customer review** to prefill **Create request** with its identity details. Independently confirm the suggested identifiers and retained record before submitting.
-- The queue's 25 seeded candidate pairs rely partly on synthetic known reference relationships. **This is not a measured real-world duplicate-detection recall rate.** Fuzzy name matching is separate and never auto-merges real companies.
+Open **Master Data → Create request**.
 
-### Master Data → Create request
+1. Under **Intake channel**, select **Quick form** to enter details manually or **From email** to extract information from an existing message.
+2. Select the record type, such as **Customer** or **Item**.
+3. Fill in the required fields. The form checks for missing details and, where applicable, possible duplicate records.
+4. Review the suggested matches carefully. If an existing record should be retained, confirm the proposed identity-link details.
+5. Select the acknowledgement checkbox and then **Submit for approval**.
 
-1. Choose **Quick form** or **From email** under **Intake channel**.
-2. Select **Customer** or **Item** (fully functional). **Vendor** and **Cost Center** are configuration-only examples.
-3. Enter the required domain fields. For customers, similarity suggestions and verified-registration comparisons can propose linking an existing alias to a retained/golden record.
-4. Tick the details confirmation and select **Submit for approval**. Open **Request tracker** to follow the resulting RQ-numbered case.
+The portal assigns a request reference. Use **Request tracker** to check its status.
 
-**Email simulation:** Choose **From email**, paste a synthetic message and select **Extract and prefill**. Rules-first extraction works offline. **Use configured Azure OpenAI extraction** requires separate authorized credentials. **Email routing & response simulation** previews how an MDM mailbox would classify the message, send a proposed reply, observe a two-week grace period or enable authorized MDM override. **It does not send Outlook mail or create Teams Adaptive Cards.**
+**Creating a request from an email:** Paste the message into the email field and select **Extract and prefill**. Check every extracted value before submitting. If an optional AI extraction service is unavailable, use the rules-based extraction option.
 
-Example email:
+Example request:
 
 > Please create customer ABC Hospital under QTS in Singapore. Registration number: SG-REG-000001.
 
-**Record categories remain distinct:** confirmed PO, customer purchasing request, enquiry and internal MDM setup. Only setup messages can enter the MDM approval workflow.
+You can expand **Email routing & response simulation** to see how an incoming message would be classified and what acknowledgement would be prepared. Messages are not actually sent by this feature.
 
-### Master Data → Request tracker and Approval inbox
+**Available record types:** Customer and Item support the complete request flow. Vendor and Cost Center are currently listed for configuration purposes.
 
-The tracker provides request IDs, originators, domain, market and status. The inbox adapts to the chosen demo persona:
+### Track a request
 
-| Sidebar persona | Available work |
+Open **Master Data → Request tracker**.
+
+Use **Filter by status** to narrow the list, or search using a request number or record name. The tracker shows requests as they move through the approval process.
+
+| Status | Meaning |
 | --- | --- |
-| **Requestor** | Review own submitted requests and current status |
-| **Finance Steward** | Customer domain decisions assigned to Finance |
-| **BU Steward** | Business-unit review alongside Finance or Quality |
-| **Quality Steward** | Item domain decisions assigned to Quality |
-| **MDM Steward** | Final validation after all assigned stewards approve |
-| **Admin** | Maintain approval rules in Administration |
+| **Submitted** | The request has been received. |
+| **In Approval** | One or more assigned reviewers are considering the request. |
+| **Approved** | Required steward reviews are complete; final validation is pending. |
+| **Created** | Final validation and the workspace handoff have been recorded. |
+| **Rejected** | The request was not approved; no master-data change was completed. |
 
-Eligible stewards see **Approve request** and **Reject request**; other users see only the case status. Customer requests use **Finance + BU**; Item uses **Quality + BU**, both with final **MDM validation**. Maker-checker separation prevents the requestor approving their own request.
+### Review and approve requests
 
-Statuses: **Submitted → In Approval → Approved → Created** or **Rejected**. Expand **Approval deadlines**, **Audit history**, or **ERP handoff** to inspect supporting information. SLA events are idempotent; unattended real reminders would require an external scheduler.
+Open **Master Data → Approval inbox** and select the request you need to review.
 
-The mock ERP handoff is exportable JSON with a stable request ID. Real SAP creation is *not* part of the public walkthrough, and local identity links are not live SAP Business Partner merges.
+The information and actions available depend on the role currently selected in **Viewing as** in the left sidebar:
 
-### Regional Performance
-
-Filter by country, Product **A/B/C**, and business unit. Review recent confirmed PO trend, year-on-year comparison and the identity impact. The evidence panel provides a six-month source-order breakdown for Hospital ABC and shows **current vs unapproved/approved consolidated** growth. A verified mapping changes account attribution, not the original physical order quantities.
-
-The five selected markets — **Singapore, Malaysia, Indonesia, Thailand and Vietnam** — are **project assumptions**; the Lives Group brief specifies five country locations without naming them.
-
-### Insights & Forecasts
-
-- **Confirmed purchase orders only** feed valid forecasts. The dataset also includes **700 enquiries** and **300 customer purchasing requests**, excluded from PO demand. MDM requests are in their own workflow table.
-- Compare **six-month moving average**, **Holt–Winters** and **pooled gradient boosting** over the **same 45 held-out country × product × month observations**. **Lower WAPE is better.** There is no assumed winner.
-- The **unfiltered-input ablation** deliberately contaminates model training with quantities from enquiries/customer requests, but evaluates against **confirmed PO actuals**. It is a diagnostic run, not a purchasable forecast. MDM setups have no transaction quantity and are not invented as orders.
-- Create a plan by selecting **Market**, **Product A/B/C**, **6 or 12 months** and one of the **three valid PO-only models**. Review low/base/high *planning scenarios* and select **Export purchasing plan (CSV)**. Scenarios are sensitivity bands, not confidence intervals.
-- Explore drop-off and cross-sell candidates; these are **rules-based recommendations**, not automated customer decisions.
-- Adjust the **Demand visibility** assumptions — days waiting, share needing a PO and illustrative PO value — to estimate *potential* delayed-order exposure. The dataset does not link setup requests to actual blocked orders. **This is not measured lost revenue.**
-- The classifier benchmark uses a **small, curated synthetic labelled dataset**; it is not a claim about actual Outlook or LLM precision.
-
-### Administration
-
-View optional connector status and the **Approval routing matrix** keyed by entity, domain and country. In the **Admin** demo role, use **Add a new routing rule** to configure a business unit, steward and working-day SLA without editing code.
-
-Change the **Illustrative operational savings** assumptions. Defaults: **50 requests/month**, **65 minutes before**, **26 minutes after**, **S$40/hour** → **32.5 hours/month** or **S$1,300/month in gross staff capacity**, not realized cash savings or verified ROI.
-
-## FAQ and troubleshooting
-
-| Problem | Check |
+| Role | Responsibilities |
 | --- | --- |
-| Extra page links labelled app/actions/approvals/intake/regional | Refresh or reboot; the unified entry point hides Streamlit's legacy auto-generated navigation |
-| Approve button unavailable | Correct role in **Viewing as**; selected request must be **In Approval** with a task assigned to that steward |
-| Case has already been finalized | Inspect a different case, or reset only when other visitors are not using the shared demo |
-| +20% appears as a preview | Both stewards **and** MDM must finalize before it becomes live consolidated analytics |
-| Azure OpenAI extraction unavailable | Switch to rules-first extraction |
-| No automatic Outlook / Teams / SAP activity | These integrations are **demonstrated as simulations** by default, not connected corporate services |
-| Forecast takes time on first visit | Three-model chronological backtesting can require an initial calculation; subsequent results are cached |
+| **Requestor** | View submitted requests and monitor their progress. |
+| **Finance Steward** | Review assigned customer requests. |
+| **BU Steward** | Review assigned business-unit requests. |
+| **Quality Steward** | Review assigned item requests. |
+| **MDM Steward** | Perform final validation after the assigned stewards approve. |
+| **Admin** | Maintain approval-routing configuration under Administration. |
 
-## Install and validate locally
+When a review is assigned to your role, inspect the request details and supporting evidence before selecting **Approve request** or **Reject request**. For requests that have completed all steward reviews, the MDM Steward can select **Confirm and finalize**.
 
-From the repository root:
+Customer requests normally require **Finance Steward + BU Steward** review. Item requests normally require **Quality Steward + BU Steward** review. Both then proceed to final MDM validation.
 
-~~~bash
-cd DSA
-python -m pip install -r requirements.txt pytest
-python generate_data.py --reset
-streamlit run app.py
-~~~
+For further context, expand **Approval deadlines**, **Audit history** or **ERP handoff**, when available. The handoff provides an exportable record of the approved action; it does not mean a live company ERP has been updated.
 
-Automated tests:
+## Explore purchasing and customer performance
 
-~~~bash
-cd DSA
-python -m pytest -q
-~~~
+Open **Regional Performance**.
 
-**Streamlit deployment settings:** repo **jk-jx/DSA-Competition**, branch **main**, entry point **DSA/app.py**.
+- Choose a **Market**, **Product** and **Business unit** to explore confirmed purchase-order quantities.
+- Review the purchasing trend and year-on-year comparisons.
+- Check the featured customer evidence to understand how duplicate identities can affect account-level growth interpretation.
+- Expand the source-order details to compare the original customer IDs with their consolidated view.
 
-Optional secret names (never commit credentials): **AZURE_OPENAI_ENDPOINT**, **AZURE_OPENAI_DEPLOYMENT**, **AZURE_OPENAI_API_KEY**, **TEAMS_WEBHOOK_URL**, **SAP_B1_SERVICE_LAYER_URL**, **SAP_B1_COMPANY_DB**, **SAP_B1_USERNAME**, **SAP_B1_PASSWORD**. An authorized external scheduler is needed for unattended SLA notifications. **Never connect production SAP credentials to the public demo.**
+An approved identity link updates the way customer purchases are attributed. It **does not create additional purchase orders or change regional purchase-order totals**.
 
-## The PDF is the base — prototype vs production
+The included markets are Singapore, Malaysia, Indonesia, Thailand and Vietnam; products are grouped as A, B and C.
 
-| Current synthetic implementation | Original PDF's proposed enterprise deployment |
-| --- | --- |
-| Streamlit forms, role selector and PO dashboards | Power Apps / Power BI with authentic corporate user accounts |
-| SQLite statuses, routing matrix and append-only audit events | SharePoint Lists or Dataverse, with restricted Finance/MDM data |
-| In-app approval, reminders and mock notifications | Power Automate, Teams Approvals / Adaptive Cards and escalations |
-| Pasted emails, rules-first/optional AI extraction, response preview | Shared Outlook mailbox interceptor, prefilled draft and controlled transition |
-| RapidFuzz + human matching review | SAP-backed matching service / Azure Function with steward validation |
-| Stable SAP-ready JSON and mock ledger | SAP Business One Service Layer and production reconciliation controls |
+## Build a purchasing forecast
 
-**Working in the demo:** Customer/Item intake, independent approvals, audit and routing, prioritized synthetic identity exceptions, 3D exploration, customer decision change, regional PO analytics, three models + ablation, 6/12-month export, email response/grace-period simulation and hidden-demand scenario.
+Open **Insights & Forecasts**.
 
-**Not proven:** live enterprise authentication, real mail/Teams/SAP tenancy, production-sensitive-field protections, full Vendor/Cost Center forms, actual unknown-duplicate detection accuracy, real postponed orders, production time savings, or financial payback. The uploaded **DSA Competition (1).pdf** remains the authoritative solution design.
+### Review forecast accuracy
 
-## Competition deliverables
+The **Compare forecast models** section shows each model's error measured using **WAPE**. Lower WAPE indicates a better result for the evaluated period.
 
-Submit the **final two-page report (or two slides)**, **functioning prototype**, **public GitHub code**, and **2–3 minute YouTube demo**. Verify the live walkthrough and report claims, then insert the *real* YouTube URL before submission.
+The available PO-only forecasting methods are **six-month moving average**, **Holt–Winters**, and **pooled gradient boosting**. The additional **unfiltered-input** comparison illustrates how including non-order messages in demand data can distort analysis; it is not a method for generating purchasing plans.
 
-**Qualifying deadline: 28 October 2026, 12 PM Singapore time.**
+### Create and export a plan
+
+1. In **Forward purchasing plan**, choose the **Market** and **Product**.
+2. Select a **6-month** or **12-month** horizon.
+3. Select one of the three PO-only forecasting methods.
+4. Review the monthly forecast and the low/high planning scenarios.
+5. Select **Export purchasing plan (CSV)** to download the monthly quantities.
+
+The low and high values are planning scenarios, not guaranteed demand ranges. Review them together with commercial context before making purchasing decisions.
+
+### Review commercial opportunities
+
+The same workspace includes **Customer drop-off watchlist** and **Cross-selling candidates**. These are indications for account managers to investigate, not automated instructions to contact customers or place orders.
+
+The **Demand visibility** section estimates possible purchasing activity delayed by pending master-data setups. You can adjust the waiting period, proportion of requests expected to require an order and typical order value. The displayed financial amount is an **illustrative estimate**, not confirmed revenue or observed lost sales.
+
+## Administration
+
+Open **Administration** to view the available integration status and current **Approval routing matrix**. You can filter rules by business unit, master-data domain and country.
+
+When using the **Admin** role in the demonstration, open **Add a new routing rule** to set an entity, domain, market, assigned steward and working-day SLA. Saved rules apply to future requests; they do not retroactively change previously assigned approvals.
+
+The **Operational savings calculator** lets you vary request volume, processing time and hourly cost to estimate staff capacity that could be released. These figures are scenario estimates, not measured cost reductions.
+
+## Frequently asked questions
+
+**Why can't I approve this request?**  
+The current role may not be an assigned reviewer, the request may already be complete, or the assigned review may no longer be pending. Check **Viewing as**, the selected request and its approval progress.
+
+**Why is a potential consolidated growth figure different from the live result?**  
+Proposed customer-identity changes are displayed for review, but they do not become part of the approved analytical view until all required approvals and final MDM confirmation are complete.
+
+**What if the request has already been completed?**  
+You can inspect its completed status, supporting audit history and handoff. To restore the original sample records, use **Reset demonstration** in the sidebar. A reset affects the demonstration data, so avoid using it while another person is working.
+
+**Why do I see a forecasting model taking time to load?**  
+Model comparisons can require an initial calculation. Once computed, results may load more quickly because they are cached.
+
+**Why can't I send email notifications or create an SAP record?**  
+Email replies, role changes and ERP handoffs are presented in a demonstration environment. Live enterprise connections are not part of the standard public workspace.
+
+**Where can I get help?**  
+Open **✦ Ask Operations** in the bottom-right corner of the portal.
+
+## About this workspace
+
+The current environment uses **sample business data** and simulated employee roles. Information you enter may be visible in a shared demonstration environment, and changes may not persist after a restart. Do not enter actual confidential or sensitive information.
