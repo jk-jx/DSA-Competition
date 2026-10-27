@@ -51,6 +51,22 @@ def init_schema(c):
         entity TEXT NOT NULL, domain TEXT NOT NULL, country TEXT NOT NULL,
         steward TEXT NOT NULL, delegate TEXT, sla_days INTEGER NOT NULL DEFAULT 2,
         UNIQUE(entity,domain,country,steward));
+    CREATE TABLE IF NOT EXISTS sla_events(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        request_key TEXT NOT NULL,
+        steward TEXT NOT NULL,
+        event TEXT NOT NULL,
+        delegate TEXT,
+        created_at TEXT NOT NULL,
+        delivery TEXT NOT NULL,
+        UNIQUE(request_key,steward,event));
+    CREATE TABLE IF NOT EXISTS outbound_integrations(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        request_key TEXT NOT NULL UNIQUE,
+        provider TEXT NOT NULL,
+        external_id TEXT,
+        status TEXT NOT NULL,
+        checked_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS sap_records(
         id INTEGER PRIMARY KEY AUTOINCREMENT, request_key TEXT NOT NULL UNIQUE,
         sap_object TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL);
