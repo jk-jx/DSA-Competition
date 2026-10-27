@@ -6,14 +6,12 @@ from database import load_df
 from workflow import decide,finalize,add_approval_rule,WorkflowError
 from sla import sla_snapshot, process_sla
 from sap_integration import configured as sap_configured, send_live, SAPIntegrationError
-from ui import next_step
+from ui import next_step, hero, pill
 
 def render(role):
-    st.title('Review and approve requests')
-    st.caption('Choose a request, approve it as each assigned steward, then perform the final MDM check.')
+    hero('STEP 02 / DATA GOVERNANCE', 'Review, approve, release', 'Every request follows independent stewardship checks before the final master-data handoff.')
     role=st.selectbox('Acting as (demo role)', ['Requestor','Finance Steward','Quality Steward','BU Steward','MDM Steward','Admin'], key='approval_role')
-    st.info('Walkthrough: Finance Steward → BU Steward → MDM Steward. Role selection only simulates authenticated access.')
-    st.caption('State machine: Draft → Submitted → In Approval → Approved → Created; rejection is an alternate terminal state. All recorded decisions are timestamped.')
+    st.caption('For the customer example: Finance Steward → BU Steward → MDM Steward. Roles are simulated for this demonstration.')
     req=load_df('''SELECT request_key AS request_id,domain,record_name,country,entity,requested_by,status,
                 match_source_id,match_target_id FROM mdm_requests ORDER BY id DESC''')
     with st.expander('All requests',expanded=False):
@@ -28,23 +26,24 @@ def render(role):
     if item.match_source_id and item.match_target_id:
         st.info(f'Golden-record review: {item.match_source_id} → {item.match_target_id}. Requires matching verified identifiers and final MDM approval. Historical transactions will remain unchanged.')
     tasks=load_df('SELECT steward,state,decision_by,decision_at FROM approval_tasks WHERE request_key=?',(key,))
-    st.subheader('Parallel data-steward decisions')
-    st.dataframe(tasks,use_container_width=True,hide_index=True)
+    st.subheader('Approval progress')
+    st.dataframe(tasks.rename(columns={'steward':'Reviewer','state':'Decision','decision_by':'Reviewed by','decision_at':'Reviewed at'}),use_container_width=True,hide_index=True)
+    pill(f"Request status: {item.status}", 'green' if item.status=='Created' else 'amber' if item.status in ('In Approval','Submitted') else 'gray')
     st.caption('Maker–checker rule: the requestor cannot approve their own request. Each steward sees only their assigned task.')
-    st.subheader('Live SLA queue · working days and delegates')
-    snapshot=sla_snapshot()
-    scoped=[entry for entry in snapshot if entry['request_key']==key]
-    if scoped:
-        st.dataframe(pd.DataFrame(scoped),hide_index=True,use_container_width=True)
-        if st.button('Process due reminders and escalation',help='Records exactly-once reminder/escalation events; sends non-sensitive text to Teams only if a webhook is configured.'):
-            try:
-                events=process_sla(notify=True)
-                st.success(f"{len(events)} new reminder/escalation event(s) processed. Existing events are not repeated.")
-                if events: st.dataframe(pd.DataFrame(events),hide_index=True)
-            except Exception as exc:
-                st.error(f"SLA processing failed: {type(exc).__name__}: {exc}")
-    else:
-        st.caption('No pending SLA tasks for this request.')
+    with st.expander('Approval deadlines and escalation',expanded=False):
+        snapshot=sla_snapshot()
+        scoped=[entry for entry in snapshot if entry['request_key']==key]
+        if scoped:
+            st.dataframe(pd.DataFrame(scoped),hide_index=True,use_container_width=True)
+            if st.button('Process due reminders and escalation',help='Records exactly-once reminder/escalation events; sends non-sensitive text to Teams only if a webhook is configured.'):
+                try:
+                    events=process_sla(notify=True)
+                    st.success(f"{len(events)} new reminder/escalation event(s) processed. Existing events are not repeated.")
+                    if events: st.dataframe(pd.DataFrame(events),hide_index=True)
+                except Exception as exc:
+                    st.error(f"SLA processing failed: {type(exc).__name__}: {exc}")
+        else:
+            st.caption('No pending SLA tasks for this request.')
     if role in ['Finance Steward','Quality Steward','BU Steward']:
         pending=tasks[(tasks.steward==role)&(tasks.state=='Pending')]
         if item.status=='In Approval' and len(pending):
@@ -66,8 +65,9 @@ def render(role):
     sap=load_df('SELECT payload_json FROM sap_records WHERE request_key=?',(key,))
     if len(sap):
         data=json.loads(sap.iloc[0]['payload_json'])
-        with st.expander('SAP Business One handoff · simulated, idempotent',expanded=True):
-            st.json(data)
+        with st.expander('Master-data handoff and SAP integration',expanded=False):
+            st.success('An approved SAP-ready handoff has been prepared. No live SAP record is created in the public demo.')
+            st.write(f"**Request:** {key} · **Action:** {'Link existing customer identity' if data.get('Action')=='LinkExistingIdentity' else 'Create master record'}")
             st.download_button('Download SAP-ready JSON',json.dumps(data,indent=2),'sap_payload_'+key+'.json','application/json')
             st.caption('Unique request ID prevents duplicate mock records on retry. Live SAP writes require a test tenant and explicit confirmation, with manual reconciliation after ambiguous network failures.')
             if role=='MDM Steward':
@@ -81,14 +81,14 @@ def render(role):
                             st.error(str(exc))
                 else:
                     st.info('Live SAP B1 adapter installed; configure SAP_B1_SERVICE_LAYER_URL, SAP_B1_COMPANY_DB, SAP_B1_USERNAME and SAP_B1_PASSWORD in deployment secrets to enable dispatch.')
-    with st.expander('Append-only audit trail',expanded=True):
-        st.dataframe(load_df('SELECT happened_at,actor,event,details FROM audit_log WHERE request_key=? ORDER BY id',(key,)),hide_index=True,use_container_width=True)
+    with st.expander('View approval history',expanded=False):
+        st.dataframe(load_df('SELECT happened_at,actor,event,details FROM audit_log WHERE request_key=? ORDER BY id',(key,)).rename(columns={'happened_at':'Time','actor':'By','event':'Event','details':'Notes'}),hide_index=True,use_container_width=True)
     if item.status=='Created':
         st.success('Approved and finalized. You can now see the corrected customer analysis.')
         next_step(2,'See the change in regional purchasing insights →')
     st.divider()
     if role=='Admin':
-        st.subheader('Approval matrix · no-code administration')
+        st.subheader('Approval routing settings')
         matrix=load_df('SELECT entity,domain,country,steward,delegate,sla_days FROM approval_matrix ORDER BY entity,domain,country,steward')
         with st.expander('Current routing matrix'):
             st.dataframe(matrix,use_container_width=True,hide_index=True)
