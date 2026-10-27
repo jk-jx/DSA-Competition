@@ -65,11 +65,34 @@ def test_new_item_request_and_configurable_approvals():
     assert payload['Object']=='Items'
 
 
-def test_invalid_canonical_mapping_cannot_be_finalized():
-    # Artificial malicious source/target request; workflow refuses different verified IDs.
-    key=submit_request('Customer',{'name':'Healthcare Alias','country':'SG','entity':'SPD','registration_number':'FAKE'},
+def test_invalid_canonical_mapping_is_blocked_at_intake():
+    with pytest.raises(WorkflowError):
+        submit_request('Customer',{'name':'Healthcare Alias','country':'SG','entity':'SPD','registration_number':'FAKE'},
                        merge_source='SG-C002',merge_target='SG-C003')
+
+
+def test_fresh_submitted_identity_resolution_changes_dashboard():
+    key=submit_request('Customer', {'name':'ABC Hospital','country':'SG','entity':'QTS',
+        'registration_number':'SG-REG-000001'}, requester='Alex Sales',
+        merge_source='SG-A001',merge_target='SG-C001')
+    req=status_for(key)
+    assert (req['match_source_id'],req['match_target_id'])==('SG-A001','SG-C001')
+    assert hero_customer()['cleaned']['growth']==-40.0
     decide(key,'Finance Steward','Wei Jie Finance','Approved')
     decide(key,'BU Steward','Daniel BU Head','Approved')
-    with pytest.raises(WorkflowError):finalize(key,'Priya MDM')
-    assert status_for(key)['status']=='Approved'  # transaction rolled back
+    result=finalize(key,'Priya MDM')
+    assert result['payload']['Action']=='LinkExistingIdentity'
+    assert hero_customer()['cleaned']['growth']==20.0
+    assert decision_impact()['changed']==1
+
+
+def test_partial_merge_request_is_rejected():
+    with pytest.raises(WorkflowError):
+        submit_request('Customer', {'name':'ABC Hospital','country':'SG','entity':'QTS',
+            'registration_number':'SG-REG-000001'}, merge_source='SG-A001')
+
+
+def test_merge_requires_matching_submitted_identifier():
+    with pytest.raises(WorkflowError):
+        submit_request('Customer', {'name':'ABC Hospital','country':'SG','entity':'QTS',
+            'registration_number':'FAKE'}, merge_source='SG-A001',merge_target='SG-C001')
