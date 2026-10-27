@@ -746,11 +746,11 @@ def insights():
     st.markdown("### Compare forecast models")
     summary, history = forecast_results()
     st.caption("Rolling-origin evaluation on exactly the same confirmed PO actuals; lower WAPE is better.")
-    a, b = st.columns(2)
-    baseline_rows=summary[summary.model.isin(["6-month moving average","Holt-Winters"])]
-    for col, row in zip((a, b), baseline_rows.itertuples(index=False)):
-        with col:
-            st.metric(row.model, f"{float(summary.loc[summary.model==row.model, 'WAPE %'].iloc[0]):.2f}% WAPE")
+    model_columns=st.columns(3)
+    for col,name in zip(model_columns,["6-month moving average","Holt-Winters","Pooled gradient boosting"]):
+        value=float(summary.loc[summary.model==name,"WAPE %"].iloc[0])
+        col.metric(name,f"{value:.2f}% WAPE")
+    st.caption("Reference evaluation: 15 market/product series × 3 rolling holdouts = 45 observations; synthetic PO data through September 2026.")
     st.plotly_chart(px.bar(summary, x="model", y="WAPE %", text="WAPE %",
                            labels={"model": "Model"}, color="model")
                     .update_layout(showlegend=False, height=270,
