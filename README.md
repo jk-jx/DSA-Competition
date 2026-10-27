@@ -1,28 +1,19 @@
-# Lives Group Case — Master Data & Regional Intelligence
+# Operations Portal
 
-**SMU DSA Society 2026 Data Case Competition** · Unified operations portal prototype
+A workspace for managing master-data requests, approvals, customer identity reviews and regional purchasing insights.
 
-**[Open the working Streamlit portal](https://dsa-competition-4w84ptpcxfowwbvj5l3kkh.streamlit.app/)**
+**[Open the workspace](https://dsa-competition-4w84ptpcxfowwbvj5l3kkh.streamlit.app/)** · **[Read the full user guide](DSA/README.md)**
 
-## How to use it
+## Get started
 
-The complete **[Workspace User Guide](DSA/README.md)** explains all five workspaces, roles, approval steps, forecasting, admin settings, and demo limitations.
+Use the left-hand menu in the portal to open **Overview**, **Master Data**, **Regional Performance**, **Insights & Forecasts** or **Administration**.
 
-For a short demonstration:
+- **Create a request:** Master Data → Create request → complete required fields → Submit for approval.
+- **Track progress:** Master Data → Request tracker.
+- **Review an assigned request:** Master Data → Approval inbox. Only the appropriate reviewer role can approve or reject.
+- **Investigate suspected duplicate customers:** Master Data → Quality exceptions.
+- **Review purchasing or export a forecast:** Regional Performance or Insights & Forecasts.
 
-1. **Master Data → Quality exceptions:** inspect customer aliases and purchasing risk.
-2. **Master Data → Approval inbox:** open preloaded request **RQ-0001**.
-3. Change **Viewing as** in the left sidebar to **Finance Steward** and approve; then **BU Steward** and approve; then **MDM Steward** to **Confirm and finalize**.
-4. **Regional Performance:** examine the source evidence and the resulting customer growth correction **−40% → +20%**. Physical PO quantities remain unchanged.
-5. **Insights & Forecasts:** inspect purchase-order-only forecasting, the machine-learning and unfiltered-data comparison, then build/export a 6- or 12-month purchasing plan.
+For instructions on each screen, approval responsibilities, exporting forecasts and troubleshooting, see the **[Workspace User Guide](DSA/README.md)**. You can also open **✦ Ask Operations** inside the app.
 
-**Data are synthetic.** User roles, Outlook/Teams routing and SAP handoff are demonstrations, not Live Lives Group integrations. The original project PDF is the authoritative design: Streamlit/SQLite serves as the prototype for a proposed M365/SAP production rollout.
-
-## Source and deployment
-
-- Application: [DSA/app.py](DSA/app.py); full project in [DSA/](DSA/).
-- Streamlit Community Cloud: repository `jk-jx/DSA-Competition`, branch `main`, entry point `DSA/app.py`.
-- Local setup: open [DSA/README.md](DSA/README.md#install-and-validate-locally).
-- Competition submission: final two-page report, public GitHub repository, working app and 2–3-minute YouTube walkthrough.
-
-**Deadline: 28 October 2026, 12 PM SGT.**
+**Note:** This environment uses synthetic business records and simulated employee roles. Do not enter real confidential information.
