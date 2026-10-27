@@ -601,8 +601,10 @@ def quality_exceptions():
 
 def master_data():
     portal_header("Master data workspace", "Create, track and approve clean customer and item records.")
-    view = st.radio("Work area", WORK_VIEWS, key="workspace_view", horizontal=True,
-                    label_visibility="collapsed")
+    view = st.segmented_control(
+        "Work area", WORK_VIEWS, key="workspace_view",
+        label_visibility="collapsed", selection_mode="single",
+    )
     st.divider()
     if view == "Quality exceptions":
         quality_exceptions()
