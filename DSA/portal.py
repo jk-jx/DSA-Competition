@@ -512,6 +512,20 @@ def approval_inbox():
 
 
 
+def _prepare_quality_review(alias_id, case_data):
+    """Prefill intake before widgets render; navigation stays consistent."""
+    st.session_state["req_domain"]="Customer"
+    st.session_state["req_Customer_name"]=case_data["alias_name"]
+    st.session_state["req_Customer_country"]=case_data["country"]
+    st.session_state["req_Customer_entity"]=case_data["entity"]
+    st.session_state["req_Customer_registration_number"]=case_data["registration_number"]
+    st.session_state["prepared_alias"]=alias_id
+    st.session_state["prepared_target"]=case_data["target_id"]
+    st.session_state["req_link_existing"]=True
+    st.session_state["request_method"]="Quick form"
+    go("Master Data","Create request")
+
+
 def quality_exceptions():
     st.markdown("### Data quality exceptions")
     cases=quality_cases()
@@ -563,16 +577,10 @@ def quality_exceptions():
         elif case.status=="Resolved":
             st.success("Verified identity link has been completed.")
         else:
-            if st.button("Prepare customer review",type="primary",key="prepare_case"):
-                st.session_state["req_domain"]="Customer"
-                st.session_state["req_Customer_name"]=case.alias_name
-                st.session_state["req_Customer_country"]=case.country
-                st.session_state["req_Customer_entity"]=case.entity
-                st.session_state["req_Customer_registration_number"]=case.registration_number
-                st.session_state["prepared_alias"]=case.alias_id
-                st.session_state["prepared_target"]=case.target_id
-                go("Master Data","Create request")
-                st.rerun()
+            st.button(
+                "Prepare customer review",type="primary",key="prepare_case",
+                on_click=_prepare_quality_review,args=(selected,case.to_dict()),
+            )
         st.caption("Review score is a prioritization heuristic—not a probability or proof of legal identity.")
 
 
