@@ -275,13 +275,17 @@ def request_form():
                         st.caption("Matching business identifiers found. Link an existing alias, rather than creating another customer, after steward approval.")
                         enable = st.checkbox("Propose verified identity resolution", value=True, key="req_link_existing")
                         if enable:
+                            prepared=st.session_state.get("prepared_alias")
                             match_source = st.selectbox("Existing duplicate / alias", candidates,
+                                index=candidates.index(prepared) if prepared in candidates else 0,
                                 format_func=lambda c: f"{options[c]['name']} ({c})")
                             targets = [x for x in ids if x != match_source and x not in mapped]
                             if targets:
                                 preferred = [x for x in targets if x == options[x]["canonical_truth_id"]]
+                                selected_target=st.session_state.get("prepared_target")
+                                default_target=selected_target if selected_target in targets else preferred[0] if preferred else targets[0]
                                 match_target = st.selectbox("Golden record to retain", targets,
-                                    index=targets.index(preferred[0]) if preferred else 0,
+                                    index=targets.index(default_target),
                                     format_func=lambda c: f"{options[c]['name']} ({c})")
                             st.caption("Link status: pending master-data validation · Transaction history retained")
                 else:
@@ -297,6 +301,8 @@ def request_form():
                                  merge_source=match_source, merge_target=match_target)
             st.session_state["portal_last_request"] = key
             st.session_state["chosen_request"] = key
+            st.session_state.pop("prepared_alias",None)
+            st.session_state.pop("prepared_target",None)
             st.success(f"Request {key} submitted. It is now in the approval queue.")
         except WorkflowError as exc:
             st.error(str(exc))
