@@ -11,6 +11,18 @@ def render(role):
     st.title('Submit a master-data request')
     st.caption('Start with an email or enter the details yourself. The app checks for missing fields and duplicates before approval.')
     st.info('Try the example: ABC Hospital · QTS · Singapore · SG-REG-000001. After submission, go to Review & approve.')
+    a_demo,b_demo=st.columns([1,2])
+    with a_demo:
+        if st.button('Use sample duplicate request',use_container_width=True):
+            st.session_state['intake_domain']='Customer'
+            st.session_state['Customer_name']='ABC Hospital'
+            st.session_state['Customer_country']='SG'
+            st.session_state['Customer_entity']='QTS'
+            st.session_state['Customer_registration_number']='SG-REG-000001'
+            st.session_state['email_parsed']=None
+            st.rerun()
+    with b_demo:
+        st.caption('Or paste an email below to see automatic classification and field extraction.')
     with st.expander('Paste an email · classify and prefill',expanded=True):
         pasted=st.text_area('Paste a synthetic email or request',key='pasted_email',
             placeholder='Please create customer ABC Hospital under QTS in Singapore. Registration number: SG-REG-000001.')
@@ -28,6 +40,9 @@ def render(role):
                 st.rerun()
             except Exception as exc:
                 st.error(f'Extraction failed: {exc}')
+        if st.session_state.get('email_parsed') and st.button('Clear email analysis; enter manually'):
+            st.session_state['email_parsed']=None
+            st.rerun()
         parsed=st.session_state.get('email_parsed')
         if parsed:
             st.success('Request analyzed — relevant fields have been prefilled below. Please review before submitting.')
@@ -103,6 +118,7 @@ def render(role):
         try:
             key=submit_request(domain,values,requester=ROLE_ACTOR[role],merge_source=source_id,merge_target=target_id)
             st.session_state['last_request']=key
+            st.session_state['selected_request']=key
             st.success(f'{key} submitted for independent steward review.')
         except WorkflowError as e:st.error(str(e))
     if st.session_state.get('last_request'):
