@@ -96,3 +96,22 @@ def test_merge_requires_matching_submitted_identifier():
     with pytest.raises(WorkflowError):
         submit_request('Customer', {'name':'ABC Hospital','country':'SG','entity':'QTS',
             'registration_number':'FAKE'}, merge_source='SG-A001',merge_target='SG-C001')
+
+def test_identity_case_evidence_is_a_preview_until_approved():
+    from insights import identity_case_evidence
+    first=identity_case_evidence()
+    assert first['primary_previous']==100
+    assert first['primary_latest']==60
+    assert first['combined_previous']==100
+    assert first['combined_latest']==120
+    assert first['primary_growth']==-40.0
+    assert first['combined_growth']==20.0
+    assert not first['approval_applied']
+    original=first['total_po_units']
+    decide('RQ-0001','Finance Steward','Wei Jie Finance','Approved')
+    decide('RQ-0001','BU Steward','Daniel BU Head','Approved')
+    finalize('RQ-0001','Priya MDM')
+    after=identity_case_evidence()
+    assert after['approval_applied']
+    assert after['total_po_units']==original
+    assert after['monthly'].equals(first['monthly'])
