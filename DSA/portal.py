@@ -364,6 +364,17 @@ def approval_inbox():
     tasks = load_df(
         "SELECT steward,state,decision_by,decision_at FROM approval_tasks WHERE request_key=? ORDER BY id", (key,)
     )
+    if item.domain=="Customer" and pd.notna(item.match_source_id) and pd.notna(item.match_target_id) and (item.match_source_id,item.match_target_id)==("SG-A001","SG-C001"):
+        evidence=identity_case_evidence()
+        with st.container(border=True):
+            st.markdown("#### Evidence supporting this identity review")
+            a,b=st.columns(2)
+            a.metric("Current account growth",f"{evidence['primary_growth']:+.0f}%")
+            b.metric("Proposed consolidated growth",f"{evidence['combined_growth']:+.0f}%")
+            st.caption("Matching registration identifier · Same country · Historical purchase orders preserved")
+            st.caption("The consolidated growth is an illustrative preview until the MDM steward finalizes. Review the underlying customer identities before making a decision.")
+            with st.expander("Review six months of source transactions"):
+                st.dataframe(evidence['monthly'],hide_index=True,use_container_width=True)
     st.markdown("#### Approval progress")
     st.dataframe(tasks.rename(columns={
         "steward": "Approver", "state": "Status", "decision_by": "Decision by",
