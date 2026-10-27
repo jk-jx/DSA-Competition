@@ -31,6 +31,25 @@ p{line-height:1.6}
 [data-testid="stSidebar"] .portal-brand-name,
 [data-testid="stSidebar"] .portal-brand-sub {color:#e9f3ff!important}
 [data-testid="stSidebar"] hr{border-color:#294058!important}
+/* Sidebar has a dark surface even when the main theme is light.
+   Restore sufficient contrast to actual workspace radio labels and caption text. */
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label,
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label p,
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label span,
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label div {
+ color:#eef5ff!important;
+ opacity:1!important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) p,
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) span {
+ color:#ffffff!important;
+}
+[data-testid="stSidebar"] [data-testid="stSelectbox"] label p,
+[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] * {
+ color:#17324d;
+}
+[data-testid="stSidebar"] [data-testid="stSelectbox"] label p {color:#e9f3ff!important;}
+
 [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p{
  color:#9ab0c8!important;font-size:.75rem!important
 }
