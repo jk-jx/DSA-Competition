@@ -4,6 +4,8 @@ import json
 from config import ROLE_ACTOR, COUNTRIES, ENTITIES, settings
 from database import load_df
 from workflow import decide,finalize,add_approval_rule,WorkflowError
+from sla import sla_snapshot, process_sla
+from sap_integration import configured as sap_configured, send_live, SAPIntegrationError
 
 def render(role):
     st.title('Tracker, Steward Approvals & Administration')
@@ -20,6 +22,20 @@ def render(role):
     st.subheader('Parallel data-steward decisions')
     st.dataframe(tasks,use_container_width=True,hide_index=True)
     st.caption('Maker–checker rule: the requestor cannot approve their own request. Each steward sees only their assigned task.')
+    st.subheader('Live SLA queue · working days and delegates')
+    snapshot=sla_snapshot()
+    scoped=[entry for entry in snapshot if entry['request_key']==key]
+    if scoped:
+        st.dataframe(pd.DataFrame(scoped),hide_index=True,use_container_width=True)
+        if st.button('Process due reminders and escalation',help='Records exactly-once reminder/escalation events; sends non-sensitive text to Teams only if a webhook is configured.'):
+            try:
+                events=process_sla(notify=True)
+                st.success(f"{len(events)} new reminder/escalation event(s) processed. Existing events are not repeated.")
+                if events: st.dataframe(pd.DataFrame(events),hide_index=True)
+            except Exception as exc:
+                st.error(f"SLA processing failed: {type(exc).__name__}: {exc}")
+    else:
+        st.caption('No pending SLA tasks for this request.')
     if role in ['Finance Steward','Quality Steward','BU Steward']:
         pending=tasks[(tasks.steward==role)&(tasks.state=='Pending')]
         if item.status=='In Approval' and len(pending):
@@ -44,7 +60,18 @@ def render(role):
         with st.expander('SAP Business One handoff · simulated, idempotent',expanded=True):
             st.json(data)
             st.download_button('Download SAP-ready JSON',json.dumps(data,indent=2),'sap_payload_'+key+'.json','application/json')
-            st.caption('Unique request ID prevents duplicate mock records on retry. A real SAP Service Layer integration would additionally require server-side idempotency/reconciliation.')
+            st.caption('Unique request ID prevents duplicate mock records on retry. Live SAP writes require a test tenant and explicit confirmation, with manual reconciliation after ambiguous network failures.')
+            if role=='MDM Steward':
+                if sap_configured():
+                    confirm=st.checkbox('I am authorized to dispatch to the configured SAP B1 tenant; I verified the mapping.',key='sap_confirm_'+key)
+                    if st.button('Dispatch to SAP B1 Service Layer',disabled=not confirm):
+                        try:
+                            result=send_live(key,confirm=True)
+                            st.success('SAP returned: '+str(result))
+                        except SAPIntegrationError as exc:
+                            st.error(str(exc))
+                else:
+                    st.info('Live SAP B1 adapter installed; configure SAP_B1_SERVICE_LAYER_URL, SAP_B1_COMPANY_DB, SAP_B1_USERNAME and SAP_B1_PASSWORD in deployment secrets to enable dispatch.')
     with st.expander('Append-only audit trail',expanded=True):
         st.dataframe(load_df('SELECT happened_at,actor,event,details FROM audit_log WHERE request_key=? ORDER BY id',(key,)),hide_index=True,use_container_width=True)
     st.divider()
