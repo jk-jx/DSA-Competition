@@ -50,3 +50,18 @@ def test_master_data_subviews_render_for_each_role(isolated_app):
         assert not app.exception, (
             role, [str(e.message) for e in app.exception]
         )
+
+
+def test_prepare_customer_review_click_prefills_form(isolated_app):
+    app=isolated_app
+    app.session_state["portal_section"]="Master Data"
+    app.session_state["workspace_view"]="Quality exceptions"
+    app.run()
+    assert not app.exception
+    app.button(key="prepare_case").click().run()
+    assert not app.exception, [str(e.message) for e in app.exception]
+    assert app.session_state["workspace_view"]=="Create request"
+    assert app.session_state["req_domain"]=="Customer"
+    assert app.session_state["prepared_alias"]
+    assert app.session_state["prepared_target"]
+    assert app.session_state["req_Customer_registration_number"]
