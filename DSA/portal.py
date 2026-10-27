@@ -174,15 +174,12 @@ def _example_request():
 
 def request_form():
     st.markdown("### New master-data request")
-    st.caption("Create a customer or item record, with duplicate protection built in.")
-    left, right = st.columns([1, 2], vertical_alignment="center")
-    with left:
-        st.button("Use sample customer request", on_click=_example_request,
-                  type="primary", use_container_width=True)
-    with right:
-        st.caption("Example: ABC Hospital, QTS, Singapore. The app finds an existing customer alias and routes it for human verification.")
+    st.caption("Customer and item master-data intake")
+    with st.expander("Sample request data"):
+        st.button("Load sample customer record", on_click=_example_request,
+                  use_container_width=False)
 
-    st.radio("How would you like to start?", ["Quick form", "From email"],
+    st.radio("Intake channel", ["Quick form", "From email"],
              key="request_method", horizontal=True)
     if st.session_state["request_method"] == "From email":
         with st.container(border=True):
@@ -220,7 +217,7 @@ def request_form():
     domain = st.selectbox("Master-data domain", list(cfg), key="req_domain")
     info = cfg[domain]
     if info.get("prototype_status") == "config_only":
-        st.info("{} uses configuration-only rules in this student version. Choose Customer or Item for end-to-end processing.".format(domain))
+        st.caption("{}: domain setup is not yet active.".format(domain))
         return
 
     st.markdown("#### Request information")
@@ -285,7 +282,7 @@ def request_form():
                                 match_target = st.selectbox("Golden record to retain", targets,
                                     index=targets.index(preferred[0]) if preferred else 0,
                                     format_func=lambda c: f"{options[c]['name']} ({c})")
-                            st.caption("The MDM steward confirms this choice. Original purchase-order rows are never rewritten.")
+                            st.caption("Link status: pending master-data validation · Transaction history retained")
                 else:
                     st.info("These existing identities have already been reconciled.")
 
@@ -309,7 +306,7 @@ def request_form():
 
 def request_tracker():
     st.markdown("### Request tracker")
-    st.caption("Follow requests from submission to completion.")
+    st.caption("Submitted records and approval status")
     data = requests()
     if data.empty:
         st.info("No requests yet. Create a new master-data request.")
@@ -709,7 +706,7 @@ def administration():
         ("SAP Business One", "Configured for authorized dispatch" if sap_configured() else "SAP-ready handoff only"),
     ]
     st.dataframe(pd.DataFrame(statuses, columns=["Service", "Status"]), hide_index=True, use_container_width=True)
-    st.caption("No production credentials are needed for the competition walkthrough.")
+    st.caption("Integration status reflects the configured environment.")
 
     st.markdown("### Illustrative operational savings calculator")
     st.caption("Change the assumptions to estimate capacity released from faster, cleaner requests. This is not a measured production saving.")
@@ -746,7 +743,7 @@ def administration():
     }), hide_index=True, use_container_width=True)
 
     if role != "Admin":
-        st.info("Switch to the Admin demo role in the sidebar to add routing rules.")
+        st.caption("Routing rule maintenance is restricted to administrators.")
         return
     with st.expander("Add a new routing rule"):
         with st.form("routing_form"):
