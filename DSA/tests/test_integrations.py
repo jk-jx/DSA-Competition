@@ -55,3 +55,12 @@ def test_sap_mapping_only_supported_operations():
         map_payload({"Action": "LinkExistingIdentity", "Object": "BusinessPartners"})
     with pytest.raises(SAPIntegrationError):
         send_live("RQ-0001", confirm=False)
+
+def test_synthetic_message_benchmark_matches_all_four_purchasing_types():
+    from classifier_evaluation import classifier_benchmark
+    result=classifier_benchmark()
+    assert result["count"]==20
+    assert result["accuracy"]>=90
+    assert set(result["details"]["Expected category"])=={
+        "PO","Customer Request","Enquiry","MDM Setup"
+    }
