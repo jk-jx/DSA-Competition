@@ -153,3 +153,16 @@ def test_quality_exception_queue_tracks_governance_and_exposure():
     after=quality_cases()
     assert after.set_index("alias_id").loc["SG-A001"].status=="Resolved"
     assert quality_summary(after)["unresolved"]==24
+
+def test_3d_identity_network_reflects_actual_approval_state():
+    from quality_monitor import quality_cases
+    from network_view import build_identity_network
+    cases=quality_cases()
+    fig=build_identity_network(cases,highlighted_alias="SG-A001")
+    assert len(fig.data)>=3
+    assert any(trace.name=="Proposed link" for trace in fig.data)
+    decide("RQ-0001","Finance Steward","Wei Jie Finance","Approved")
+    decide("RQ-0001","BU Steward","Daniel BU Head","Approved")
+    finalize("RQ-0001","Priya MDM")
+    approved=build_identity_network(quality_cases())
+    assert any(trace.name=="Approved alias" for trace in approved.data)
