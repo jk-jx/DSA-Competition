@@ -67,6 +67,24 @@ def hero_customer():
         return {'previous':int(r.previous),'latest':int(r.latest),'growth':float(r.growth_pct),'category':r.category}
     return {'raw':extract(raw),'cleaned':extract(clean),'resolved':bool(load_df('SELECT * FROM identity_map WHERE alias_id=?',('SG-A001',)).shape[0])}
 
+def hero_preview():
+    """Illustrative post-link view from the synthetic source records; never a committed merge.
+
+    Shows what Hospital ABC's trend would be if stewards approve the seeded
+    alias SG-A001 -> SG-C001. Source transaction rows remain untouched.
+    """
+    source=load_df(
+        """SELECT t.period,t.qty FROM transactions t
+           WHERE t.record_type='PO' AND t.customer_id IN (?,?)""",
+        ('SG-C001','SG-A001'),
+    )
+    previous=int(source.loc[source.period.isin(PREV3),'qty'].sum())
+    latest=int(source.loc[source.period.isin(LAST3),'qty'].sum())
+    growth=(latest-previous)/previous*100 if previous else float('nan')
+    return {'previous':previous,'latest':latest,'growth':growth,
+            'category':growth_category(previous,latest)}
+
+
 def regional_summary(country=None,product=None,entity=None):
     df=enriched(True)
     df=df[(df.period>=YOY_START)&(df.period<=str(LATEST))]
