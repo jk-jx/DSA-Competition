@@ -12,7 +12,7 @@ def render(role):
                 match_source_id,match_target_id FROM mdm_requests ORDER BY id DESC''')
     st.dataframe(req,use_container_width=True,hide_index=True)
     if req.empty:return
-    key=st.selectbox('Inspect request',req.request_id.tolist(),index=req.request_id.tolist().index('RQ-0001') if 'RQ-0001' in req.request_id.tolist() else 0)
+    key=st.selectbox('Inspect request',req.request_id.tolist(),index=req.request_id.tolist().index(st.session_state.get('last_request')) if st.session_state.get('last_request') in req.request_id.tolist() else 0)
     item=req.set_index('request_id').loc[key]
     if item.match_source_id and item.match_target_id:
         st.info(f'Golden-record review: {item.match_source_id} → {item.match_target_id}. Requires matching verified identifiers and final MDM approval. Historical transactions will remain unchanged.')
