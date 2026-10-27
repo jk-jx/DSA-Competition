@@ -140,8 +140,19 @@ button[data-testid="stBaseButton-primary"]:hover,.stButton button[kind="primary"
 }
 .stButton button:hover,.stDownloadButton button:hover{border-color:#9db7d8!important;color:#245a9f}
 hr{border-color:#e3e9f0!important}
+/* Keep native radio choices readable; only workspace tabs use segmented controls. */
 div[data-testid="stRadio"]:not([data-testid="stSidebar"] *) [role="radiogroup"]{
- padding:4px;background:#ebf0f6;border-radius:10px;gap:3px
+ gap:10px
+}
+[data-testid="stSegmentedControl"] button{
+ color:#263d56!important;background:#ffffff!important;border-color:#d6e1ed!important;
+ font-weight:700!important;min-height:39px!important
+}
+[data-testid="stSegmentedControl"] button[aria-checked="true"],
+[data-testid="stSegmentedControl"] button[aria-pressed="true"],
+[data-testid="stSegmentedControl"] button[data-state="on"]{
+ background:#e3efff!important;color:#153e75!important;
+ border-color:#94b7e4!important
 }
 .ui-hero{background:linear-gradient(110deg,#1a3958,#23667c);border:1px solid #245a78;
  color:#fff;padding:25px 28px;border-radius:15px;margin:4px 0 22px}
