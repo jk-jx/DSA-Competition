@@ -541,6 +541,8 @@ def quality_exceptions():
         st.plotly_chart(build_identity_network(shown,highlighted_alias=st.session_state.get("exception_selected")),use_container_width=True)
         st.caption("Orbit to inspect candidate identities and PO exposure. Orange = proposed, teal = approved, blue = potential golden record. Spatial positions are for exploration only.")
     choices=shown.alias_id.tolist()
+    if st.session_state.get("exception_selected") not in choices:
+        st.session_state["exception_selected"]=choices[0]
     selected=st.selectbox("Inspect candidate",choices,key="exception_selected")
     case=shown.set_index("alias_id").loc[selected]
     with st.container(border=True):
