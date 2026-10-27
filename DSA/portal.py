@@ -338,129 +338,164 @@ def request_tracker():
 
 
 def approval_inbox():
-    st.markdown("### Approval inbox")
-    st.caption("Review assigned requests and track approval status.")
-    req = requests()
+    role=st.session_state["portal_role"]
+    title="Request status" if role=="Requestor" else "Approval inbox"
+    st.markdown(f"### {title}")
+    req=requests()
     if req.empty:
-        st.info("No requests available.")
+        st.info("No requests have been submitted.")
         return
-    keys = req["request_key"].tolist()
-    preferred = st.session_state.get("portal_last_request")
-    if st.session_state.get("chosen_request") not in keys:
-        st.session_state["chosen_request"] = preferred if preferred in keys else keys[0]
-    key = st.selectbox("Request", keys, key="chosen_request",
-        format_func=lambda k: f"{k} · {req.loc[req.request_key==k,'record_name'].iloc[0]}")
-    item = req.set_index("request_key").loc[key]
-    role = st.session_state["portal_role"]
-    if role == "Requestor":
-        st.info("You are viewing this as Requestor. Choose a steward role in the sidebar to make an approval decision.")
-    x, y, z = st.columns(3)
-    x.metric("Request", key)
-    y.metric("Status", item.status)
-    z.metric("Domain", item.domain)
-    if pd.notna(item.match_source_id) and pd.notna(item.match_target_id):
-        panel("Identity resolution proposed",
-              f"{item.match_source_id} → {item.match_target_id} · Existing customer IDs are reviewed; original orders stay intact.")
-    tasks = load_df(
-        "SELECT steward,state,decision_by,decision_at FROM approval_tasks WHERE request_key=? ORDER BY id", (key,)
+
+    task_rows=load_df(
+        """SELECT request_key,steward,state FROM approval_tasks ORDER BY id"""
     )
-    if item.domain=="Customer" and pd.notna(item.match_source_id) and pd.notna(item.match_target_id) and (item.match_source_id,item.match_target_id)==("SG-A001","SG-C001"):
+    if role in ("Finance Steward","Quality Steward","BU Steward"):
+        mine=task_rows[task_rows.steward==role]
+        actionable=mine[mine.state=="Pending"]
+        actionable=actionable[actionable.request_key.isin(req.loc[req.status=="In Approval","request_key"])]
+        a,b=st.columns(2)
+        a.metric("My pending reviews",len(actionable))
+        b.metric("My completed reviews",len(mine[mine.state!="Pending"]))
+        if actionable.empty:
+            st.caption("No requests currently require your decision.")
+    elif role=="MDM Steward":
+        a,b=st.columns(2)
+        a.metric("Ready for final validation",int((req.status=="Approved").sum()))
+        b.metric("Records completed",int((req.status=="Created").sum()))
+    elif role=="Requestor":
+        owned=req[req.requested_by==ROLE_ACTOR["Requestor"]]
+        a,b=st.columns(2)
+        a.metric("My submitted requests",len(owned))
+        b.metric("In progress",int(owned.status.isin(["Submitted","In Approval","Approved"]).sum()))
+    else:
+        st.caption("Request approvals and completion status across business units.")
+
+    all_keys=req.request_key.tolist()
+    current=st.session_state.get("chosen_request")
+    preferred=st.session_state.get("portal_last_request")
+    if current not in all_keys:
+        st.session_state["chosen_request"]=preferred if preferred in all_keys else all_keys[0]
+
+    key=st.selectbox(
+        "Request",all_keys,key="chosen_request",
+        format_func=lambda k: f"{k} · {req.loc[req.request_key==k,'record_name'].iloc[0]}"
+    )
+    item=req.set_index("request_key").loc[key]
+    a,b,c=st.columns(3)
+    a.metric("Request ID",key)
+    b.metric("Status",item.status)
+    c.metric("Record type",item.domain)
+    st.caption(f"{item.record_name} · {item.entity} · {item.country} · Requested by {item.requested_by}")
+
+    tasks=load_df(
+        "SELECT steward,state,decision_by,decision_at FROM approval_tasks WHERE request_key=? ORDER BY id",(key,)
+    )
+    if pd.notna(item.match_source_id) and pd.notna(item.match_target_id):
+        panel("Identity reconciliation",f"{item.match_source_id} → {item.match_target_id} · Review of existing registered identities")
+
+    if (item.domain=="Customer" and pd.notna(item.match_source_id)
+            and pd.notna(item.match_target_id)
+            and (item.match_source_id,item.match_target_id)==("SG-A001","SG-C001")):
         evidence=identity_case_evidence()
         with st.container(border=True):
-            st.markdown("#### Evidence supporting this identity review")
+            st.markdown("#### Supporting purchase-order evidence")
             a,b=st.columns(2)
-            a.metric("Current account growth",f"{evidence['primary_growth']:+.0f}%")
-            b.metric("Proposed consolidated growth",f"{evidence['combined_growth']:+.0f}%")
-            st.caption("Matching registration identifier · Same country · Historical purchase orders preserved")
-            st.caption("The consolidated growth is an illustrative preview until the MDM steward finalizes. Review the underlying customer identities before making a decision.")
-            with st.expander("Review six months of source transactions"):
-                st.dataframe(evidence['monthly'],hide_index=True,use_container_width=True)
+            a.metric("Primary record growth",f"{evidence['primary_growth']:+.0f}%")
+            b.metric("Combined identity growth",f"{evidence['combined_growth']:+.0f}%")
+            if not evidence["approval_applied"]:
+                st.caption("Unapproved identity scenario · Evidence for stewardship review, not a committed merge.")
+            with st.expander("Source transactions · six months"):
+                st.dataframe(evidence["monthly"],hide_index=True,use_container_width=True)
+                st.caption("Source PO quantities are preserved without alteration.")
+
     st.markdown("#### Approval progress")
     st.dataframe(tasks.rename(columns={
-        "steward": "Approver", "state": "Status", "decision_by": "Decision by",
-        "decision_at": "Completed at"
-    }), hide_index=True, use_container_width=True)
-    active = tasks[(tasks.steward == role) & (tasks.state == "Pending")]
-    if item.status == "In Approval" and not active.empty:
-        st.markdown(f"**Your action · {role}**")
-        a, b = st.columns(2)
-        with a:
-            if st.button("Approve request", type="primary", use_container_width=True, key="approve_this"):
-                try:
-                    decide(key, role, ROLE_ACTOR[role], "Approved")
-                    st.rerun()
-                except WorkflowError as exc:
-                    st.error(str(exc))
-        with b:
-            if st.button("Reject request", use_container_width=True, key="reject_this"):
-                try:
-                    decide(key, role, ROLE_ACTOR[role], "Rejected")
-                    st.rerun()
-                except WorkflowError as exc:
-                    st.error(str(exc))
-    elif item.status == "In Approval":
-        remaining = tasks[tasks.state == "Pending"].steward.tolist()
-        if remaining:
-            st.info(f"Awaiting review from {', '.join(remaining)}.")
-            st.caption("No action is available to your current role for this request.")
-    elif item.status == "Approved":
-        st.success("All assigned stewards approved this request. Ready for final MDM review.")
-        if role == "MDM Steward":
-            if st.button("Confirm and finalize", type="primary", key="finalize_this"):
-                try:
-                    finalize(key, ROLE_ACTOR[role])
-                    st.rerun()
-                except WorkflowError as exc:
-                    st.error(str(exc))
-        else:
-            st.info("Awaiting final confirmation by the MDM Steward.")
-            st.caption("Only the assigned MDM Steward can complete this step.")
-    elif item.status == "Created":
-        st.success("Completed. The approved identity and SAP-ready handoff are recorded.")
-        nav_button("See the effect on customer growth  →", "Regional Performance",
-                   key="approved_impact", primary=True)
-    elif item.status == "Rejected":
-        st.warning("This request was rejected. No SAP-ready creation was performed.")
+        "steward":"Approver","state":"Status",
+        "decision_by":"Decision by","decision_at":"Completed at"
+    }),hide_index=True,use_container_width=True)
 
-    with st.expander("Deadlines and escalation"):
-        scoped = [i for i in sla_snapshot() if i["request_key"] == key]
-        if scoped:
-            st.dataframe(pd.DataFrame(scoped)[
-                ["steward", "due_at", "sla_status", "delegate"]].rename(columns={
-                "steward": "Reviewer", "due_at": "Due",
-                "sla_status": "Status", "delegate": "Escalate to"}),
-                hide_index=True, use_container_width=True)
-            if st.button("Process reminders", key="do_reminders"):
-                try:
-                    outcomes = process_sla(notify=True)
-                    st.success(f"{len(outcomes)} new reminder or escalation event(s) processed.")
-                except Exception as exc:
-                    st.error(f"Could not process notifications: {type(exc).__name__}")
-        else:
-            st.caption("No active SLA tasks for this request.")
-    with st.expander("Activity history"):
-        audit = load_df(
-            "SELECT happened_at,actor,event,details FROM audit_log WHERE request_key=? ORDER BY id", (key,))
-        st.dataframe(audit.rename(columns={
-            "happened_at": "When", "actor": "By", "event": "Event", "details": "Detail"}),
-            use_container_width=True, hide_index=True)
-    sap = load_df("SELECT payload_json FROM sap_records WHERE request_key=?", (key,))
-    if not sap.empty:
-        with st.expander("SAP handoff and integration"):
-            data = json.loads(sap.iloc[0].payload_json)
-            st.caption("Prepared for SAP Business One. This public demo does not create a real ERP record.")
-            st.write("Action: " + ("Link existing identity" if data.get("Action") == "LinkExistingIdentity"
-                                     else "Create master record"))
-            st.download_button("Export handoff file", json.dumps(data, indent=2),
-                               file_name=f"handoff_{key}.json", mime="application/json")
-            if role == "MDM Steward" and sap_configured():
-                confirmed = st.checkbox("I am authorized to dispatch to the configured SAP tenant",
-                                        key=f"sap_confirm_{key}")
-                if st.button("Dispatch to SAP test tenant", disabled=not confirmed):
+    pending=tasks[tasks.state=="Pending"].steward.tolist()
+    active=role in pending
+    if item.status=="In Approval":
+        if active:
+            st.markdown(f"#### Decision · {role}")
+            a,b=st.columns(2)
+            with a:
+                if st.button("Approve request",type="primary",use_container_width=True,key="approve_this"):
                     try:
-                        st.success("ERP accepted request: " + str(send_live(key, confirm=True)))
+                        decide(key,role,ROLE_ACTOR[role],"Approved")
+                        st.rerun()
+                    except WorkflowError as exc:
+                        st.error(str(exc))
+            with b:
+                if st.button("Reject request",use_container_width=True,key="reject_this"):
+                    try:
+                        decide(key,role,ROLE_ACTOR[role],"Rejected")
+                        st.rerun()
+                    except WorkflowError as exc:
+                        st.error(str(exc))
+        else:
+            panel("In review", "Pending: "+", ".join(pending) if pending else "Review in progress")
+    elif item.status=="Approved":
+        if role=="MDM Steward":
+            st.markdown("#### Final master-data validation")
+            if st.button("Confirm and finalize",type="primary",key="finalize_this"):
+                try:
+                    finalize(key,ROLE_ACTOR[role])
+                    st.rerun()
+                except WorkflowError as exc:
+                    st.error(str(exc))
+        else:
+            panel("Steward reviews complete","Awaiting final master-data validation")
+    elif item.status=="Created":
+        panel("Completed","Master-data approval and SAP-ready handoff recorded")
+        nav_button("View business impact  →","Regional Performance",key="approved_impact",primary=True)
+    elif item.status=="Rejected":
+        panel("Rejected","No master-data creation or identity link was performed")
+
+    with st.expander("Approval deadlines"):
+        scoped=[i for i in sla_snapshot() if i["request_key"]==key]
+        if scoped:
+            st.dataframe(pd.DataFrame(scoped)[["steward","due_at","sla_status","delegate"]].rename(columns={
+                "steward":"Reviewer","due_at":"Due","sla_status":"Status","delegate":"Backup"
+            }),hide_index=True,use_container_width=True)
+            if role in ("Finance Steward","Quality Steward","BU Steward","MDM Steward","Admin"):
+                if st.button("Process reminders",key="do_reminders"):
+                    try:
+                        outcomes=process_sla(notify=True)
+                        st.success(f"{len(outcomes)} reminder or escalation event(s) recorded.")
+                    except Exception as exc:
+                        st.error(f"Reminder processing unavailable: {type(exc).__name__}")
+        else:
+            st.caption("No active SLA tasks.")
+
+    with st.expander("Audit history"):
+        audit=load_df(
+            "SELECT happened_at,actor,event,details FROM audit_log WHERE request_key=? ORDER BY id",(key,)
+        )
+        st.dataframe(audit.rename(columns={
+            "happened_at":"When","actor":"By","event":"Event","details":"Detail"
+        }),use_container_width=True,hide_index=True)
+
+    sap=load_df("SELECT payload_json FROM sap_records WHERE request_key=?",(key,))
+    if not sap.empty:
+        with st.expander("ERP handoff"):
+            data=json.loads(sap.iloc[0].payload_json)
+            st.write("SAP-ready record prepared")
+            st.caption("Integration status: local simulated handoff · No production ERP write")
+            st.download_button("Export handoff",json.dumps(data,indent=2),
+                               file_name=f"handoff_{key}.json",mime="application/json")
+            if role=="MDM Steward" and sap_configured():
+                confirmed=st.checkbox(
+                    "I am authorized to dispatch to the configured SAP tenant",
+                    key=f"sap_confirm_{key}"
+                )
+                if st.button("Dispatch to SAP test tenant",disabled=not confirmed):
+                    try:
+                        st.success("ERP accepted request: "+str(send_live(key,confirm=True)))
                     except SAPIntegrationError as exc:
                         st.error(str(exc))
+
 
 
 def master_data():
