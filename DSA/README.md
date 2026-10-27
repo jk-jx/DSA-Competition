@@ -1,6 +1,6 @@
 # Master Data & Regional Intelligence — Competition Operations Portal
 
-A unified Streamlit portal with five connected workspaces: **Overview, Master Data, Regional Performance, Insights & Forecasts, and Administration**. This prototype intentionally has no invented product brand name. It uses synthetic data and simulated roles, not a production ERP tenant.
+A unified Streamlit portal with five connected workspaces: **Overview, Master Data (including a Quality Exceptions work queue), Regional Performance, Insights & Forecasts, and Administration**. This prototype intentionally has no invented product brand name. It uses synthetic data and simulated roles, not a production ERP tenant.
 
 ## Run locally
 
@@ -13,6 +13,8 @@ streamlit run app.py
 Or start `streamlit run app.py` directly: it creates the synthetic SQLite database if missing.
 
 ## Judge demonstration: a business decision corrected by clean data
+
+Start with **Master Data → Quality exceptions** to triage all 25 synthetic candidate identity pairs. Filter by market/status, inspect source business identifiers and purchase-order exposure, and prepare a governed review from the candidate record. Candidates remain unverified until steward/MDM approval. The seeded RQ-0001 is a convenient preexisting review for the featured case.
 
 1. Open **Overview** and **Regional Performance**. Hospital ABC's primary source record appears **−40%**. The **Decision evidence** panel shows the verified identifier candidates and an explicitly unapproved **+20%** what-if preview based on actual synthetic PO source rows.
 2. Open **Master Data → Approval inbox** and select seeded **RQ-0001**. Review the same identity evidence, assigned stewards and audit history. Change your simulated persona **only in the left sidebar's “Viewing as” selector**.
@@ -37,6 +39,7 @@ Use **Reset demonstration** in the sidebar before recording. The public SQLite s
 | `forecast.py` | Matched rolling-origin WAPE: moving average vs Holt–Winters |
 | `portal.py` | Unified operations portal, guided stewardship and decision-evidence views |
 | `assistant_guide.py` | Contextual navigation assistant that never changes user roles |
+| `quality_monitor.py` | Ranked master-data exception queue, source evidence and governance statuses |
 | `ui.py` | Shared portal styling and UI components |
 | `tests/` | Workflow and analytics acceptance tests |
 
