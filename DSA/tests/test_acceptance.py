@@ -129,3 +129,27 @@ def test_forward_purchasing_plan_is_reproducible_and_po_only():
             assert (result['Forecast units']>=0).all()
     with pytest.raises(ValueError):
         forward_plan('SG','A',18)
+
+def test_quality_exception_queue_tracks_governance_and_exposure():
+    from quality_monitor import quality_cases, quality_summary
+    cases=quality_cases()
+    assert len(cases)==25
+    hero=cases.set_index("alias_id").loc["SG-A001"]
+    assert hero.target_id=="SG-C001"
+    assert hero.category_change
+    assert hero.priority=="Critical"
+    assert hero.current_growth==-40.0
+    assert hero.potential_growth==20.0
+    assert hero.status=="In review"
+    assert hero.request_key=="RQ-0001"
+    summary=quality_summary(cases)
+    assert summary["unresolved"]==25
+    assert summary["decision_changers"]>=1
+    assert summary["units_attribution_exposure"]>0
+    decide("RQ-0001","Finance Steward","Wei Jie Finance","Approved")
+    decide("RQ-0001","BU Steward","Daniel BU Head","Approved")
+    assert quality_cases().set_index("alias_id").loc["SG-A001"].status=="Awaiting MDM"
+    finalize("RQ-0001","Priya MDM")
+    after=quality_cases()
+    assert after.set_index("alias_id").loc["SG-A001"].status=="Resolved"
+    assert quality_summary(after)["unresolved"]==24
