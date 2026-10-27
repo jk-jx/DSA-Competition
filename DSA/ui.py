@@ -82,7 +82,7 @@ p{line-height:1.6}
 .portal-section-label h3{margin:0!important;font-size:1.04rem!important}
 .portal-section-label span{font-size:.78rem;color:#8a98aa}
 .portal-banner{
- border-radius:18px;padding:28px 31px;margin:4px 0 22px;
+ border-radius:18px;padding:30px 33px;margin:28px 0 30px;
  color:#fff;background:
  radial-gradient(ellipse at 93% 18%,#2d7590 0%,transparent 34%),
  linear-gradient(115deg,#172f4e 3%,#1a4865 100%);
@@ -170,7 +170,7 @@ div[data-testid="stRadio"]:not([data-testid="stSidebar"] *) [role="radiogroup"]{
 @media(max-width:850px){
  .block-container{padding:1.3rem 1.1rem 5.8rem}
  .portal-header-row{flex-wrap:wrap}
- .portal-banner{padding:22px 19px}
+ .portal-banner{padding:24px 20px;margin:22px 0 26px}
  .portal-banner h2{font-size:1.25rem!important}
  .kpi-card{padding:15px}
 }
