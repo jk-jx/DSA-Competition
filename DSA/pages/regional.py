@@ -2,11 +2,13 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from config import COUNTRIES,ENTITIES
+from ui import next_step
 from insights import (decision_impact,regional_summary,monthly,hero_customer,record_type_counts,transactions,
                       LATEST,DISPLAY_START)
 
 def render(role):
-    st.title('Regional Purchasing & Data Quality Impact')
+    st.title('See the business impact of cleaner data')
+    st.info('Compare customer growth before and after approved matching. Regional order quantities should not change when identities are consolidated.')
     st.caption(f'Synthetic purchase orders · Display: {DISPLAY_START} to {LATEST} · YoY comparison against the preceding 12 months')
     impact=decision_impact(); hero=hero_customer(); counts=record_type_counts()
     k1,k2,k3,k4=st.columns(4)
@@ -43,6 +45,7 @@ def render(role):
     customers=customer_growth(cleaned=not raw_mode)
     st.subheader('Customer-level growth classifications')
     st.dataframe(customers.sort_values('latest',ascending=False).head(30),hide_index=True,use_container_width=True)
+    next_step(3,'Continue to forecasts and recommendations →')
     with st.expander('Data lineage and scope'):
         st.write(f"Orders are filtered to record_type='PO'. Excluded from demand analysis: {counts.get('Enquiry',0)} enquiries and {counts.get('Customer Request',0)} customer purchasing requests. Internal MDM requests are held in a separate table and never counted as orders.")
         st.write('Five locations (SG, MY, ID, TH, VN) and three business entities are illustrative assumptions. Raw transactions are preserved; approved customer mappings change attribution only.')
