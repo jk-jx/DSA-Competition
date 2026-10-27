@@ -142,10 +142,12 @@ def regional_summary(country=None,product=None,entity=None):
     piv['YoY growth %']=np.where(base>0,100*(piv['Latest 12 months']-base)/base,np.nan)
     return piv
 
-def monthly(country=None,product=None):
+def monthly(country=None,product=None,entity=None):
+    """Latest twelve months of confirmed POs under all selected filters."""
     df=transactions(True)
     if country:df=df[df.country==country]
     if product:df=df[df['product']==product]
+    if entity:df=df[df.entity==entity]
     df=df[df.period>=DISPLAY_START]
     return df.groupby(['period','product'],as_index=False)['qty'].sum()
 
