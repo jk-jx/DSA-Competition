@@ -89,6 +89,15 @@ def overview():
     with k3: metric_tile("Verified identity links", f"{int(mapped)}", "◇", "teal", "Customer records reconciled")
     with k4: metric_tile("Purchase-order lines", f"{counts.get('PO',0):,}", "↗", "slate", "Confirmed purchase orders")
 
+    cases_summary=quality_summary()
+    with st.container(border=True):
+        a,b,c=st.columns([1,1,1])
+        a.metric("Identity cases requiring attention",cases_summary["unresolved"])
+        b.metric("Potential decision changes",cases_summary["decision_changers"])
+        c.metric("Attributed PO units to examine",f'{cases_summary["units_attribution_exposure"]:,}')
+        st.caption("Exceptions are derived from source identifiers and confirmed PO data, not hypothetical user-entered scores.")
+        nav_button("Open data quality exceptions →","Master Data","Quality exceptions",key="overview_triage",primary=True)
+
     hero_data = hero_customer()
     impact = decision_impact()
     st.markdown(
