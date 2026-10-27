@@ -36,7 +36,7 @@ def features(history,period_index,key):
     if len(history)<12:
         raise ValueError("Need twelve months of lag history")
     latest=history[-1]
-    month=MONTHS[period_index].month if period_index<len(MONTHS) else ((period_index-1)%12)+1
+    month=((MONTHS[0].month-1+period_index)%12)+1
     return [
         float(latest),float(np.mean(history[-3:])),
         float(np.mean(history[-6:])),float(history[-12]),
