@@ -26,6 +26,7 @@ from ui import hero, panel, pill, metric_tile, section_label
 from quality_monitor import quality_cases, quality_summary
 from network_view import build_identity_network
 from hidden_demand import hidden_demand_model
+from email_routing import route_inbound_email
 
 SECTIONS = ["Overview", "Master Data", "Regional Performance", "Insights & Forecasts", "Administration"]
 WORK_VIEWS = ["Quality exceptions", "Request tracker", "Create request", "Approval inbox"]
@@ -212,6 +213,18 @@ def request_form():
                     st.rerun()
                 except Exception as exc:
                     st.error("Could not extract details: " + str(exc))
+            with st.expander("Email routing & response simulation"):
+                mode=st.radio("Email transition policy",["Launch grace period","Structured form required"],horizontal=True,key="mail_policy")
+                manual=st.checkbox("Authorized MDM manual override",key="mail_override")
+                if pasted.strip():
+                    routing=route_inbound_email(pasted,grace_period=mode=="Launch grace period",mdm_override=manual)
+                    st.markdown("**Classification:** "+routing["record_type"])
+                    st.markdown("**Routing:** "+routing["route"])
+                    st.markdown("**Suggested reply:** "+routing["reply_subject"])
+                    st.write(routing["reply_body"])
+                    st.caption("Preview only. No Outlook message or Teams notification has been sent. Approvals remain governed in the inbox.")
+                else:
+                    st.caption("Paste a message to preview the classification, routing and reply.")
             parsed = st.session_state.get("parsed_email")
             if parsed:
                 st.success("Email analyzed. Review the prefilled fields below.")
