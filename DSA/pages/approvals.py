@@ -6,15 +6,24 @@ from database import load_df
 from workflow import decide,finalize,add_approval_rule,WorkflowError
 from sla import sla_snapshot, process_sla
 from sap_integration import configured as sap_configured, send_live, SAPIntegrationError
+from ui import next_step
 
 def render(role):
-    st.title('Tracker, Steward Approvals & Administration')
+    st.title('Review and approve requests')
+    st.caption('Choose a request, approve it as each assigned steward, then perform the final MDM check.')
+    role=st.selectbox('Acting as (demo role)', ['Requestor','Finance Steward','Quality Steward','BU Steward','MDM Steward','Admin'], key='approval_role')
+    st.info('Walkthrough: Finance Steward → BU Steward → MDM Steward. Role selection only simulates authenticated access.')
     st.caption('State machine: Draft → Submitted → In Approval → Approved → Created; rejection is an alternate terminal state. All recorded decisions are timestamped.')
     req=load_df('''SELECT request_key AS request_id,domain,record_name,country,entity,requested_by,status,
                 match_source_id,match_target_id FROM mdm_requests ORDER BY id DESC''')
-    st.dataframe(req,use_container_width=True,hide_index=True)
+    with st.expander('All requests',expanded=False):
+        st.dataframe(req,use_container_width=True,hide_index=True)
     if req.empty:return
-    key=st.selectbox('Inspect request',req.request_id.tolist(),index=req.request_id.tolist().index(st.session_state.get('last_request')) if st.session_state.get('last_request') in req.request_id.tolist() else 0)
+    choices=req.request_id.tolist()
+    preferred=st.session_state.get('last_request')
+    if preferred not in choices: preferred=choices[0]
+    if st.session_state.get('selected_request') not in choices: st.session_state['selected_request']=preferred
+    key=st.selectbox('Select the request to review',choices,key='selected_request')
     item=req.set_index('request_id').loc[key]
     if item.match_source_id and item.match_target_id:
         st.info(f'Golden-record review: {item.match_source_id} → {item.match_target_id}. Requires matching verified identifiers and final MDM approval. Historical transactions will remain unchanged.')
@@ -74,6 +83,9 @@ def render(role):
                     st.info('Live SAP B1 adapter installed; configure SAP_B1_SERVICE_LAYER_URL, SAP_B1_COMPANY_DB, SAP_B1_USERNAME and SAP_B1_PASSWORD in deployment secrets to enable dispatch.')
     with st.expander('Append-only audit trail',expanded=True):
         st.dataframe(load_df('SELECT happened_at,actor,event,details FROM audit_log WHERE request_key=? ORDER BY id',(key,)),hide_index=True,use_container_width=True)
+    if item.status=='Created':
+        st.success('Approved and finalized. You can now see the corrected customer analysis.')
+        next_step(2,'See the change in regional purchasing insights →')
     st.divider()
     if role=='Admin':
         st.subheader('Approval matrix · no-code administration')
