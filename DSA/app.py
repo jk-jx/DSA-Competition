@@ -23,6 +23,7 @@ with st.sidebar:
     st.caption('Role switching simulates identity. Not secure authentication.')
     if st.button('Reset demonstration data',help='Restores original synthetic dataset and pending hero request'):
         seed(reset=True)
+        st.session_state.pop('last_request',None)
         st.rerun()
     st.divider()
     st.caption('Synthetic data only • No SAP integration • 36-month source history • 12-month dashboard')
