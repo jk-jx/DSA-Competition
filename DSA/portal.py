@@ -518,7 +518,7 @@ def regional():
         "YoY growth %": "YoY growth %"
     })
     st.dataframe(result, hide_index=True, use_container_width=True)
-    st.caption("YoY compares Sep 2025–Sep 2026 display year with the preceding twelve months in the 36-month history. Chart displays latest 12 months only.")
+    st.caption("YoY compares Oct 2025–Sep 2026 with Oct 2024–Sep 2025, using 36 months of synthetic history. The chart displays the latest 12 months.")
     with st.expander("Explore customer growth classifications"):
         raw = st.toggle("View raw, unreconciled customer identities")
         d = customer_growth(cleaned=not raw)
@@ -565,8 +565,7 @@ def insights():
     a, b = st.columns(2)
     for col, row in zip((a, b), summary.itertuples(index=False)):
         with col:
-            st.metric(row.model, f"{float(getattr(row, '_1', float('nan'))):.1f}%" if False else
-                      f"{float(summary.loc[summary.model==row.model, 'WAPE %'].iloc[0]):.2f}% WAPE")
+            st.metric(row.model, f"{float(summary.loc[summary.model==row.model, 'WAPE %'].iloc[0]):.2f}% WAPE")
     st.plotly_chart(px.bar(summary, x="model", y="WAPE %", text="WAPE %",
                            labels={"model": "Model"}, color="model")
                     .update_layout(showlegend=False, height=270,
