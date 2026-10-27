@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from insights import transactions
+from forecast_ml import pooled_backtest, pooled_future
 
 END = pd.Period('2026-09',freq='M')
 
@@ -34,7 +35,8 @@ def backtest():
         denom=sum(actual for err,actual in pairs)
         summary.append({'model':name,'WAPE %':round(100*sum(err for err,actual in pairs)/denom,2) if denom else np.nan,
                         'held_out_points':len(pairs)})
-    return pd.DataFrame(summary),pd.DataFrame(rows)
+    extra,detail=pooled_backtest()
+    return pd.concat([pd.DataFrame(summary),extra],ignore_index=True),pd.concat([pd.DataFrame(rows),detail],ignore_index=True)
 
 
 def forward_plan(country, product, horizon=6, method='6-month moving average'):
@@ -51,7 +53,7 @@ def forward_plan(country, product, horizon=6, method='6-month moving average'):
         raise ValueError('Choose one supported product')
     if horizon not in (6, 12):
         raise ValueError('Only six- or twelve-month plans are supported')
-    if method not in ('6-month moving average', 'Holt-Winters'):
+    if method not in ('6-month moving average', 'Holt-Winters','Pooled gradient boosting'):
         raise ValueError('Unknown forecast model')
     series_data=transactions(True)
     months=pd.period_range(end=END,periods=36,freq='M')
@@ -59,7 +61,9 @@ def forward_plan(country, product, horizon=6, method='6-month moving average'):
     totals=subset.groupby('period')['qty'].sum()
     series=np.asarray([float(totals.get(str(p),0)) for p in months], dtype=float)
     baseline=float(np.mean(series[-6:]))
-    if method=='Holt-Winters':
+    if method=='Pooled gradient boosting':
+        future=pooled_future(country,product,horizon)
+    elif method=='Holt-Winters':
         try:
             fit=ExponentialSmoothing(
                 series,trend='add',seasonal='add',seasonal_periods=12,
