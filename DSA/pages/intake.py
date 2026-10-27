@@ -36,13 +36,33 @@ def render(role):
             st.warning(f'{len(matches)} candidate match(es) detected. A steward must confirm legal identity before a merge.')
             st.dataframe(pd.DataFrame(matches)[['existing_name','customer_id','score','tier']],hide_index=True,use_container_width=True)
         elif values.get('name'):st.success('No high-scoring name matches in the selected country')
+    source_id=target_id=None
+    if domain=='Customer' and values.get('registration_number','').strip():
+        verified=load_df('''SELECT customer_id,name,entity,registration_number,canonical_truth_id
+                            FROM customers WHERE country=? AND registration_number=? ORDER BY customer_id''',
+                         (values['country'],values['registration_number'].strip()))
+        if len(verified)>=2:
+            st.subheader('Match and merge → golden record')
+            st.caption('Two existing source records share a business identifier. Select the alias and retained record for human approval; historical orders are preserved.')
+            resolve=st.checkbox('Propose linking two existing identities (not creating another customer)',value=False)
+            if resolve:
+                rows=verified.set_index('customer_id').to_dict('index')
+                def display(cid): return f"{cid} · {rows[cid]['name']} ({rows[cid]['entity']})"
+                ids=list(rows)
+                aliases=[x for x in ids if x!=rows[x]['canonical_truth_id']]
+                source_id=st.selectbox('Existing alias / duplicate ID',ids,index=ids.index(aliases[0]) if aliases else 0,format_func=display)
+                targets=[x for x in ids if x!=source_id]
+                canonical=[x for x in targets if x==rows[x]['canonical_truth_id']]
+                target_id=st.selectbox('Golden record to retain',targets,index=targets.index(canonical[0]) if canonical else 0,format_func=display)
+                st.info('Matching legal identifier is evidence for review, not automatic authority to merge.')
     acknowledgement=True
     if matches and max(m['score'] for m in matches)>=settings()['matching']['review']:
-        acknowledgement=st.checkbox('I reviewed potential duplicates. Route this request for stewardship review rather than automatic creation.')
+        acknowledgement=st.checkbox('I reviewed the candidates and will send this for steward approval before any new SAP record is created.')
     if st.button('Submit for approval',type='primary',disabled=bool(missing) or not acknowledgement):
         try:
-            key=submit_request(domain,values,requester=ROLE_ACTOR[role])
-            st.success(f'{key} submitted. Check Page 2 for the parallel approval tasks.')
+            key=submit_request(domain,values,requester=ROLE_ACTOR[role],merge_source=source_id,merge_target=target_id)
+            st.session_state['last_request']=key
+            st.success(f'{key} submitted. Visit Page 2, switch to each steward role, then complete the MDM check.')
         except WorkflowError as e:st.error(str(e))
     st.divider()
     with st.expander('Why name similarity is not enough'):
