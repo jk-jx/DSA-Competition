@@ -223,3 +223,12 @@ def test_reference_backtest_values_are_reproducible():
     assert results["Unfiltered training (ablation)"]==22.86
     assert (summary.held_out_points==45).all()
     assert rows.groupby("model").actual.sum().nunique()==1
+
+def test_regional_chart_and_summary_share_entity_filter():
+    from insights import monthly,transactions
+    expected=transactions(True)
+    expected=expected[(expected.period>='2025-10')&(expected.entity=='QTS')&(expected.country=='SG')&(expected['product']=='A')]
+    observed=monthly(country='SG',product='A',entity='QTS')
+    assert int(observed.qty.sum())==int(expected.qty.sum())
+    all_units=int(monthly(country='SG',product='A').qty.sum())
+    assert int(observed.qty.sum())<=all_units
