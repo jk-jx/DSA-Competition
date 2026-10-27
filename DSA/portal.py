@@ -13,7 +13,7 @@ from database import load_df
 from dedup import find_matches
 from forecast import backtest
 from insights import (
-    DISPLAY_START, LATEST, cross_sell, customer_growth, decision_impact,
+    DISPLAY_START, LATEST, cross_sell, customer_growth, decision_impact, identity_case_evidence,
     dropoff, hero_customer, monthly, record_type_counts, regional_summary,
 )
 from intake_parser import extract_message
@@ -493,6 +493,38 @@ def regional():
                    key="regional_review")
     else:
         st.success("The verified merge changes the account from declining to growing. Regional order totals remain unchanged.")
+
+    st.markdown("### Decision evidence · Hospital ABC")
+    st.caption("Why does the customer look like it is declining? Compare the two source customer IDs before approving an identity link.")
+    evidence=identity_case_evidence()
+    prior,recent=st.columns(2)
+    with prior:
+        with st.container(border=True):
+            st.markdown("**Current primary record · SG-C001**")
+            st.metric("Customer growth",f"{evidence['primary_growth']:+.0f}%")
+            st.caption(f"Previous 3 months: {evidence['primary_previous']} units · Latest 3 months: {evidence['primary_latest']} units")
+            st.warning("Account could be incorrectly flagged as declining.")
+    with recent:
+        with st.container(border=True):
+            st.markdown("**Combined identities · SG-C001 + SG-A001**")
+            st.metric("Growth after verified identity link",f"{evidence['combined_growth']:+.0f}%")
+            st.caption(f"Previous 3 months: {evidence['combined_previous']} units · Latest 3 months: {evidence['combined_latest']} units")
+            if evidence['approval_applied']:
+                st.success("Approved · consolidated growth is live in customer analytics.")
+            else:
+                st.info("Evidence-only preview · awaiting final MDM approval.")
+    chart_data=evidence['monthly'].melt(id_vars="Month",value_vars=["Primary record","Duplicate alias","Combined identity"],var_name="Identity view",value_name="Units")
+    chart=px.line(chart_data,x="Month",y="Units",color="Identity view",markers=True,
+                  color_discrete_map={"Primary record":"#d18b45","Duplicate alias":"#8699b8","Combined identity":"#128c83"})
+    chart.update_layout(height=295,margin=dict(l=4,r=4,t=4,b=4),legend_title_text="",
+                        paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)")
+    st.plotly_chart(chart,use_container_width=True)
+    with st.expander("Trace the underlying purchase orders"):
+        st.dataframe(evidence['monthly'],hide_index=True,use_container_width=True)
+        st.caption(f"Source evidence: {evidence['po_rows']} purchase-order rows, {evidence['total_po_units']:,} total units across these IDs in the full source history. No original transaction is edited or duplicated.")
+    if not evidence['approval_applied']:
+        nav_button("View steward approval for this case  →","Master Data","Approval inbox",
+                   request="RQ-0001",key="case_evidence_review",primary=True)
 
     st.markdown("### Market and product performance")
     a, b, c = st.columns(3)
