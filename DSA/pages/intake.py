@@ -28,8 +28,22 @@ def render(role):
                 st.error(f'Extraction failed: {exc}')
         parsed=st.session_state.get('email_parsed')
         if parsed:
-            st.success(f"Classified as {parsed['record_type']} using {parsed['method']}. Review all extracted fields before submission.")
-            st.json(parsed)
+            st.success('Request analyzed — relevant fields have been prefilled below. Please review before submitting.')
+            result_type, result_domain, result_method = st.columns(3)
+            result_type.metric('Request type', parsed['record_type'])
+            result_domain.metric('Form', parsed['domain'])
+            result_method.metric('Extraction', 'AI-assisted' if parsed['method'] != 'rules' else 'Rules-based')
+            if parsed['fields']:
+                labels = {
+                    'name': 'Name', 'country': 'Country', 'entity': 'Business entity',
+                    'registration_number': 'Registration number', 'contact_email': 'Contact email',
+                    'item_category': 'Item category', 'regulatory_class': 'Regulatory class',
+                }
+                field_rows = [{'Field': labels.get(key, key.replace('_', ' ').title()), 'Extracted value': value}
+                              for key, value in parsed['fields'].items()]
+                st.dataframe(pd.DataFrame(field_rows), hide_index=True, use_container_width=True)
+            with st.expander('Technical details (JSON)', expanded=False):
+                st.json(parsed)
             if parsed['record_type']!='MDM Setup':
                 st.warning('This is not a master-data setup request. A PO, purchasing request or enquiry must not enter the MDM approval queue.')
     cfg=settings()['domains']
