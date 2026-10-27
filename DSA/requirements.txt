@@ -5,3 +5,5 @@ plotly>=5.18,<7
 rapidfuzz>=3.9,<4
 PyYAML>=6.0,<7
 statsmodels>=0.14,<1
+
+requests>=2.31,<3
