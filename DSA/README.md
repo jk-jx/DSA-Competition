@@ -40,6 +40,9 @@ Use **Reset demonstration** in the sidebar before recording. The public SQLite s
 | `portal.py` | Unified operations portal, guided stewardship and decision-evidence views |
 | `assistant_guide.py` | Contextual navigation assistant that never changes user roles |
 | `quality_monitor.py` | Ranked master-data exception queue, source evidence and governance statuses |
+| `forecast_ml.py` | Pooled regional gradient boosting and PO-only vs contaminated-input matched holdout comparison |
+| `hidden_demand.py` | Explicitly assumption-based pending-setup demand visibility estimate |
+| `email_routing.py` | Outlook-style classification, graceful transition and human MDM override reply previews |
 | `ui.py` | Shared portal styling and UI components |
 | `tests/` | Workflow and analytics acceptance tests |
 
@@ -49,7 +52,7 @@ Use **Reset demonstration** in the sidebar before recording. The public SQLite s
 - Synthetic PO dataset: **36 months, 5 countries (SG, MY, ID, TH, VN), 3 products (A/B/C), 300 canonical customers + 25 aliases, 6,000 PO lines**, with a **12-month display** and preceding 12 months for YoY.
 - Headline **Data Quality Decision Impact** = canonical customers whose growth category changes after approved identity mapping / eligible comparable canonical customers × 100. Categories use the latest 3 vs preceding 3 months (growing >5%, declining <−5%). Show numerator and denominator.
 - Historical order rows are **never edited** by identity matching; mapping is an audited reference table. Regional total PO volume stays constant after a merge.
-- **Forecast comparison** uses 3 one-step-ahead rolling-origin evaluations across 15 country-product series, on identical actual values. Users can build/export six- or twelve-month PO outlooks by country/product with explicit sensitivity bounds. No improvement is assumed. Customer-level attribution might change forecasts, but regional forecasts do not inherently change from identity merges.
+- **Forecast comparison** uses 3 one-step-ahead rolling-origin evaluations across 15 country-product series, on identical confirmed PO actual values. A six-month moving average, Holt–Winters and pooled gradient boosting are assessed alongside a deliberately contaminated input run (PO + enquiry + customer purchasing request quantities). MDM setup records contain no order quantity and are *not* fabricated as forecast inputs. Users can export six- or twelve-month PO outlooks; sensitivity bounds are not calibrated confidence intervals. Never claim an ML improvement without the observed WAPE result. Customer-identity reconciliation changes account attribution, not region/product PO totals.
 - Similarity ≥90 is review, 75–89.9 is warning, below 75 is pass; actual legal identity verification is required before merging.
 
 ## Limitations and controls
@@ -58,13 +61,22 @@ Use **Reset demonstration** in the sidebar before recording. The public SQLite s
 - Customer and Item forms are implemented; Vendor and Cost Center are configuration stubs. Sensitive fields should be restricted to Finance/MDM in a production SharePoint/Dataverse store.
 - Final SAP handoff creates a JSON payload locally, **not** an ERP record. The payload contains a request ID, and the mock SAP table enforces one record per request. Identity-resolution requests generate a linkage payload rather than creating another customer. Production SAP integration needs proper access, reconciliation and retries.
 - The proposed production architecture uses M365 Power Apps, Power Automate, Teams, restricted SharePoint/Dataverse storage and SAP B1 Service Layer, subject to licensing and security review.
-- Azure OpenAI extraction and Teams webhook notifications are implemented as opt-in connectors, with an always-available rules-first fallback. A guarded SAP B1 Service Layer adapter is implemented; it never writes without configured credentials and explicit authorization. Ablation, regional map and linked-order hidden demand remain extensions.
+- Azure OpenAI extraction and Teams webhook notifications are implemented as opt-in connectors, with an always-available rules-first fallback. A guarded SAP B1 Service Layer adapter is implemented; it never writes without configured credentials and explicit authorization. The unfiltered-input ablation, pooled gradient-boosted model, illustrative hidden-demand sensitivity model, and Outlook-style auto-reply/grace-period/MDM-override simulation are included. A geographically plotted regional map and actual setup-to-order linkage remain extensions.
+
+## How the prototype follows the uploaded base PDF
+
+The authoritative base is **DSA Competition (1).pdf**, not the optional portal styling. Its sequence is preserved: requestor form or email → classified intake / quality checks → rule-driven steward approval → MDM validation → SAP-ready payload → regional PO-only intelligence.
+
+- **Page 3:** mocked SharePoint-style status, audit, and approval matrix; email extraction and optional Azure OpenAI; mock SAP payload.
+- **Page 4:** forecasting now includes baseline, Holt–Winters and pooled gradient boosting on the same 15 regional series; ablation contaminates training with enquiries/customer purchasing requests but always scores against actual POs. A sensitivity-only hidden-demand model estimates *potential*, not observed, delayed order exposure.
+- **Pages 4–5:** cross-selling/drop-off signals, actionable regional country × product views and adoption assumptions.
+- **Pages 2 and 6:** Power Apps/Power Automate/Teams/SharePoint/SAP B1 is the **proposed production architecture**. Live corporate Outlook mailbox interception, Teams Adaptive Cards, secure Finance roles and SAP pushes cannot be represented as connected in the public demo without real tenant access.
 
 ## Email automation, SLAs and enterprise connection settings
 
-- Page 1 accepts pasted emails, distinguishes **confirmed PO / Customer Request / Enquiry / MDM Setup**, extracts domain fields, and pre-fills the intake form. Only setup requests may enter the MDM queue. The rules-first parser works without credentials.
+- The Master Data intake workspace accepts pasted emails, distinguishes **confirmed PO / Customer Request / Enquiry / MDM Setup**, extracts domain fields, and pre-fills the intake form. Only setup requests may enter the MDM queue. The rules-first parser works without credentials.
 - Optional Azure OpenAI extraction: set `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT`, `AZURE_OPENAI_API_KEY` and optionally `AZURE_OPENAI_API_VERSION` in Streamlit secrets. The user opts in by selecting the Azure OpenAI checkbox; extracted values must be reviewed before submission.
-- Page 2 computes working-day approval SLAs, due-soon reminders and overdue delegations. The app evaluates the queue on interactions; an unattended deployment should run `sla.process_sla(notify=True)` on a server schedule. Set `TEAMS_WEBHOOK_URL` to an authorized workflow endpoint to dispatch nonsensitive Teams notifications.
+- The Approval Inbox computes working-day approval SLAs, due-soon reminders and overdue delegations. The app evaluates the queue on interactions; an unattended deployment should run `sla.process_sla(notify=True)` on a server schedule. Set `TEAMS_WEBHOOK_URL` to an authorized workflow endpoint to dispatch nonsensitive Teams notifications.
 - SAP B1 test-system dispatch is available to the MDM steward only after completing the maker-checker approvals. Set `SAP_B1_SERVICE_LAYER_URL`, `SAP_B1_COMPANY_DB`, `SAP_B1_USERNAME`, `SAP_B1_PASSWORD` as deployment secrets. This uses SAP B1 Service Layer login/session authentication. Only basic Business Partner and Item create mappings are implemented; identity linking stays a local golden-record mapping until an approved SAP update mapping is provided. Unknown network outcomes are marked **pending reconciliation** rather than automatically retried. Real SAP integration is **not validated without an authorized test tenant**.
 - A Streamlit role switcher is **not real authorization**. Do not configure live production SAP credentials on a public competition demo. Use a dedicated secured deployment with proper authentication for any real record creation.
 
@@ -79,7 +91,7 @@ Use **Reset demonstration** in the sidebar before recording. The public SQLite s
 - Verify all five portal workspaces on the live hosted app, including the forecast export and steward transitions. Reset before filming.
 - Update the two-page report with the measured reclassification rate and actual WAPE; do not claim that Holt–Winters wins unless it does.
 - Upload the 2–3-minute YouTube walkthrough and include the video, repository, and live app links in the report.
-- The dataset and SAP-ready export are simulated; this is not a live SAP connection.
+- The dataset, email/Teams response preview and SAP-ready export are simulated; this is not a live Outlook, Teams Approvals or SAP connection.
 - The role switcher is illustrative only: never enter real sensitive, banking, customer or patient data.
 - Streamlit Community Cloud's SQLite may be ephemeral and shared across visitors; this is not production persistence.
 
