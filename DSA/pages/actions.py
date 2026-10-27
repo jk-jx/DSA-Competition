@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from forecast import backtest
+from ui import next_step
 from insights import (decision_impact,hero_customer,cross_sell,dropoff,record_type_counts)
 
 @st.cache_data(show_spinner='Running 3 rolling forecast origins over 15 country-product series…')
@@ -9,7 +10,8 @@ def forecast_results():
     return backtest()
 
 def render(role):
-    st.title('Forecasting, Insights & Recommended Actions')
+    st.title('Forecast demand and decide what to do next')
+    st.caption('See transparent model accuracy, then identify which customers need attention or have cross-sell potential.')
     st.caption('Quantify analytic quality and show how a verified identity resolution changes decisions. All findings use synthetic data.')
     impact=decision_impact(); hero=hero_customer(); counts=record_type_counts()
     a,b,c=st.columns(3)
