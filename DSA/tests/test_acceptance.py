@@ -166,3 +166,48 @@ def test_3d_identity_network_reflects_actual_approval_state():
     finalize("RQ-0001","Priya MDM")
     approved=build_identity_network(quality_cases())
     assert any(trace.name=="Approved alias" for trace in approved.data)
+
+def test_three_models_and_filtered_ablation_share_genuine_po_holdout():
+    from forecast import backtest,forward_plan
+    summary,detail=backtest()
+    expected={'6-month moving average','Holt-Winters',
+              'Pooled gradient boosting','Unfiltered training (ablation)'}
+    assert set(summary.model)==expected
+    assert (summary.held_out_points==45).all()
+    assert (summary['WAPE %']>=0).all()
+    for model in expected:
+        part=detail[detail.model==model]
+        assert len(part)==45
+        assert (part.actual>=0).all()
+    clean=detail[detail.model=='Pooled gradient boosting'].sort_values(['country','product','test_month'])
+    dirty=detail[detail.model=='Unfiltered training (ablation)'].sort_values(['country','product','test_month'])
+    assert clean.actual.tolist()==dirty.actual.tolist()
+    future=forward_plan('SG','A',6,'Pooled gradient boosting')
+    assert len(future)==6
+    assert (future['Forecast units']>=0).all()
+
+
+def test_hidden_demand_is_transparently_assumption_driven():
+    from hidden_demand import hidden_demand_model
+    x=hidden_demand_model(18,1800,.35)
+    assert x['pending_setups']==1
+    assert round(x['estimated_blocked_order_equivalents'],3)==.21
+    assert x['illustrative_delayed_value_sgd']==pytest.approx(378)
+    assert hidden_demand_model(0,1800,.35)['illustrative_delayed_value_sgd']==0
+
+
+def test_email_intake_simulates_grace_period_and_routing_without_sending():
+    from email_routing import route_inbound_email
+    message='Set up new customer ABC Hospital under QTS in Singapore. Registration number: SG-REG-000001'
+    grace=route_inbound_email(message,grace_period=True)
+    assert grace['record_type']=='MDM Setup'
+    assert grace['sent'] is False
+    assert 'Grace-period' in grace['route']
+    assert not grace['approval_notification_preview']['contains_sensitive_fields']
+    strict=route_inbound_email(message,grace_period=False)
+    assert strict['route']=='Form required'
+    override=route_inbound_email(message,mdm_override=True)
+    assert override['route']=='MDM manual override'
+    po=route_inbound_email('Purchase order PO 12345 for Product A')
+    assert po['record_type']=='PO'
+    assert po['route']=='Purchasing / commercial inbox'
