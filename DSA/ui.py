@@ -15,7 +15,7 @@ def style():
   --ink:#14253b;--ink-2:#2b415c;--muted:#75849b;--line:#e3e9f0;
   --bg:#f6f8fb;--accent:#3369c7;--navy:#101f35;--teal:#138b83;
 }
-html,body,[class*="css"],.stApp{font-family:"DM Sans",system-ui,-apple-system,sans-serif}
+html,body,.stApp{font-family:"DM Sans",system-ui,-apple-system,sans-serif}
 .stApp{background:var(--bg);color:var(--ink)}
 .block-container{max-width:1360px;padding:2.05rem 2.45rem 6.4rem}
 h1,h2,h3,h4{font-family:"Manrope","DM Sans",sans-serif;color:var(--ink);letter-spacing:-.04em;font-weight:800!important}
@@ -28,10 +28,8 @@ p{line-height:1.6}
  min-width:245px;
 }
 [data-testid="stSidebar"]>div:first-child{padding-top:1.4rem}
-[data-testid="stSidebar"] p,[data-testid="stSidebar"] label,
-[data-testid="stSidebar"] span,[data-testid="stSidebar"] h3{
- color:#dbe6f1!important;
-}
+[data-testid="stSidebar"] .portal-brand-name,
+[data-testid="stSidebar"] .portal-brand-sub {color:#e9f3ff!important}
 [data-testid="stSidebar"] hr{border-color:#294058!important}
 [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p{
  color:#9ab0c8!important;font-size:.75rem!important
@@ -53,9 +51,7 @@ p{line-height:1.6}
 [data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked){
  background:#254868!important;box-shadow:inset 3px 0 0 #71d4c8!important;
 }
-[data-testid="stSidebar"] .stSelectbox [data-baseweb="select"]>div{
- background:#1d3854!important;border-color:#37526d!important;color:#edf5ff!important;
-}
+/* Native sidebar select text and dropdowns follow the explicit sidebar theme. */
 [data-testid="stSidebar"] .stButton button {
  background:#1b3854!important;color:#e7f1fc!important;border:1px solid #385471!important;
 }
@@ -124,9 +120,9 @@ div[data-testid="stVerticalBlockBorderWrapper"]>div[data-testid="stVerticalBlock
 [data-testid="stExpander"]{border:1px solid #e4eaf1!important;border-radius:10px!important;background:#fff}
 [data-testid="stAlert"]{border-radius:10px!important}
 [data-testid="stTextInput"] input,[data-testid="stTextArea"] textarea{
- border-radius:9px!important;background:#fff!important;border-color:#d9e1eb!important
+ border-radius:9px!important
 }
-[data-baseweb="select"]>div{border-radius:9px!important}
+/* Let Streamlit theme own native dropdown foreground and background colors. */
 button[data-testid="stBaseButton-primary"],.stButton button[kind="primary"]{
  border-radius:9px!important;border:1px solid #285fa9!important;
  background:#285fa9!important;color:#fff!important;font-weight:800!important;
@@ -145,14 +141,7 @@ div[data-testid="stRadio"]:not([data-testid="stSidebar"] *) [role="radiogroup"]{
  gap:10px
 }
 [data-testid="stSegmentedControl"] button{
- color:#263d56!important;background:#ffffff!important;border-color:#d6e1ed!important;
- font-weight:700!important;min-height:39px!important
-}
-[data-testid="stSegmentedControl"] button[aria-checked="true"],
-[data-testid="stSegmentedControl"] button[aria-pressed="true"],
-[data-testid="stSegmentedControl"] button[data-state="on"]{
- background:#e3efff!important;color:#153e75!important;
- border-color:#94b7e4!important
+ min-height:39px!important;font-weight:700!important
 }
 .ui-hero{background:linear-gradient(110deg,#1a3958,#23667c);border:1px solid #245a78;
  color:#fff;padding:25px 28px;border-radius:15px;margin:4px 0 22px}
