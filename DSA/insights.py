@@ -85,6 +85,48 @@ def hero_preview():
             'category':growth_category(previous,latest)}
 
 
+def identity_case_evidence():
+    """Auditable source split for the seeded identity-resolution case.
+
+    The preview includes only confirmed PO quantities for SG-C001 and SG-A001.
+    It does not modify identity_map or any transaction. Even after approval the
+    raw source rows remain identical.
+    """
+    ids=('SG-C001','SG-A001')
+    rows=load_df(
+        """SELECT customer_id,period,qty FROM transactions
+           WHERE record_type='PO' AND customer_id IN (?,?)""", ids)
+    months=PREV3+LAST3
+    monthly=rows[rows.period.isin(months)].pivot_table(
+        index='period',columns='customer_id',values='qty',aggfunc='sum',fill_value=0
+    ).reindex(months,fill_value=0)
+    for customer_id in ids:
+        if customer_id not in monthly: monthly[customer_id]=0
+    monthly=monthly.reset_index().rename(columns={
+        'period':'Month','SG-C001':'Primary record','SG-A001':'Duplicate alias'
+    })
+    monthly['Combined identity']=monthly['Primary record']+monthly['Duplicate alias']
+    primary_prior=int(monthly.iloc[:3]['Primary record'].sum())
+    primary_recent=int(monthly.iloc[3:]['Primary record'].sum())
+    merged_prior=int(monthly.iloc[:3]['Combined identity'].sum())
+    merged_recent=int(monthly.iloc[3:]['Combined identity'].sum())
+    def pct(prior,recent):
+        return round((recent-prior)/prior*100,1) if prior else None
+    return {
+        'monthly':monthly,
+        'primary_previous':primary_prior,'primary_latest':primary_recent,
+        'combined_previous':merged_prior,'combined_latest':merged_recent,
+        'primary_growth':pct(primary_prior,primary_recent),
+        'combined_growth':pct(merged_prior,merged_recent),
+        'po_rows':int(len(rows)),
+        'total_po_units':int(rows.qty.sum()),
+        'approval_applied':bool(load_df(
+            'SELECT 1 FROM identity_map WHERE alias_id=? AND canonical_id=?',
+            ids[::-1],
+        ).shape[0]),
+    }
+
+
 def regional_summary(country=None,product=None,entity=None):
     df=enriched(True)
     df=df[(df.period>=YOY_START)&(df.period<=str(LATEST))]
