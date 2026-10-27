@@ -54,7 +54,11 @@ with st.sidebar:
     if st.session_state.get("portal_last_request"):
         st.caption("Recent request")
         st.markdown("**"+st.session_state["portal_last_request"]+"**")
-    st.button("Reset demonstration",on_click=reset_demo,use_container_width=True)
+    with st.popover("Reset demonstration",use_container_width=True):
+        st.warning("This resets the shared demo database for every current visitor, including their request and approval progress.")
+        confirmed=st.checkbox("I understand this will affect other viewers",key="confirm_shared_reset")
+        st.button("Reset all sample data",on_click=reset_demo,
+                  disabled=not confirmed,use_container_width=True,type="primary")
     st.markdown('<div class="portal-side-rule"></div>',unsafe_allow_html=True)
     st.caption("DEMO ENVIRONMENT")
     st.caption("Synthetic data · Simulated access · No production ERP records")
