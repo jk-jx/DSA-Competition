@@ -2,7 +2,7 @@
 import streamlit as st
 from generate_data import seed
 from sla import process_sla
-from ui import STEPS
+from ui import STEPS, style, workflow_progress
 
 st.set_page_config(page_title="Master Data & Regional Insights", page_icon="📊", layout="wide")
 seed()
@@ -14,13 +14,7 @@ try:
 except Exception:
     pass
 
-st.markdown("""<style>
-.block-container {max-width: 1200px; padding-top: 1.6rem; padding-bottom: 3rem}
-h1, h2, h3 {letter-spacing: -0.025em}
-[data-testid="stSidebar"] {background-color: #f4f7fa}
-[data-testid="stMetricValue"] {font-size: 1.7rem}
-div[data-testid="stAlert"] {border-radius: 10px}
-</style>""", unsafe_allow_html=True)
+style()
 
 def reset_demo():
     seed(reset=True)
@@ -33,9 +27,9 @@ def reset_demo():
     st.session_state["nav_step"] = STEPS[0]
 
 with st.sidebar:
-    st.caption("LIVES GROUP · INTERACTIVE CASE STUDY")
+    st.markdown("**LIVES GROUP / OPERATIONS**")
     st.markdown("### Master Data & Regional Insights")
-    st.caption("One workflow, from clean intake to better decisions.")
+    st.caption("Clean records. Faster decisions.")
     st.divider()
     page = st.radio("Your workflow", STEPS, key="nav_step")
     st.divider()
@@ -46,7 +40,7 @@ with st.sidebar:
     with st.expander("About this demonstration"):
         st.caption("Synthetic data. Roles are simulated, not secure sign-in. No production SAP records are created. Enterprise connectors require a separate authorized setup.")
 
-st.caption(f"STEP {STEPS.index(page)+1} OF 4  •  {page.split(' · ', 1)[-1].upper()}")
+workflow_progress(STEPS.index(page))
 if page == STEPS[0]:
     from pages.intake import render
 elif page == STEPS[1]:
