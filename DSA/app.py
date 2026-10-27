@@ -1,52 +1,62 @@
-"""Four connected workflow screens for a synthetic competition demonstration."""
+"""Unified, role-aware company operations portal for a synthetic competition case."""
 import streamlit as st
 from generate_data import seed
 from sla import process_sla
-from ui import STEPS, style, workflow_progress
+from ui import style
+from portal import SECTIONS, render
 
-st.set_page_config(page_title="Master Data & Regional Insights", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Operations | Master Data & Regional Insights",
+                   page_icon="◈",layout="wide",initial_sidebar_state="expanded")
 seed()
-
-# In an enterprise installation, a scheduled worker would process this queue.
-# Running this here makes reminders demonstrable without an external worker.
 try:
     process_sla(notify=False)
 except Exception:
     pass
-
 style()
+st.markdown("""<style>
+.portal-eyebrow{letter-spacing:.13em;font-size:.7rem;font-weight:800;color:#557697;margin-bottom:5px}
+.portal-status{font-size:.72rem;font-weight:800;color:#2a6c62;text-align:right;
+  border-radius:99px;background:#e4f5ee;padding:11px 10px}
+.status-dot{display:inline-block;width:8px;height:8px;background:#0e9e72;border-radius:50%;margin-right:4px}
+[data-testid="stSidebar"] .stRadio label{margin-bottom:3px}
+</style>""",unsafe_allow_html=True)
+
+if "portal_section" not in st.session_state:
+    st.session_state["portal_section"]="Overview"
+if "portal_role" not in st.session_state:
+    st.session_state["portal_role"]="Requestor"
+if "workspace_view" not in st.session_state:
+    st.session_state["workspace_view"]="Request tracker"
+if "request_method" not in st.session_state:
+    st.session_state["request_method"]="Quick form"
 
 def reset_demo():
     seed(reset=True)
-    for key in list(st.session_state.keys()):
-        if (key.startswith(("Customer_", "Item_", "Vendor_", "Cost Center_", "sap_confirm_"))
-                or key in ("last_request", "email_parsed", "pasted_email",
-                           "intake_domain", "resolve_identity", "selected_request",
-                           "approval_role", "intake_method", "intake_ack")):
-            st.session_state.pop(key, None)
-    st.session_state["nav_step"] = STEPS[0]
+    for key in list(st.session_state):
+        if key.startswith(("req_", "sap_confirm_")) or key in (
+            "portal_last_request","chosen_request","parsed_email","portal_email",
+            "req_link_existing","req_ack","request_method"):
+            st.session_state.pop(key,None)
+    st.session_state["portal_section"]="Overview"
+    st.session_state["portal_role"]="Requestor"
+    st.session_state["workspace_view"]="Request tracker"
+    st.session_state["request_method"]="Quick form"
 
 with st.sidebar:
-    st.markdown("**LIVES GROUP / OPERATIONS**")
-    st.markdown("### Master Data & Regional Insights")
-    st.caption("Clean records. Faster decisions.")
+    st.markdown("**LIVES GROUP**")
+    st.markdown("### Operations portal")
+    st.caption("Master data · Procurement intelligence")
     st.divider()
-    page = st.radio("Your workflow", STEPS, key="nav_step")
+    section=st.radio("WORKSPACES",SECTIONS,key="portal_section")
     st.divider()
-    if st.session_state.get("last_request"):
-        st.success(f"Last request: {st.session_state['last_request']}")
-    st.button("↺ Reset demo", on_click=reset_demo, use_container_width=True,
-              help="Restores synthetic records and the original pending example; clears the form.")
-    with st.expander("About this demonstration"):
-        st.caption("Synthetic data. Roles are simulated, not secure sign-in. No production SAP records are created. Enterprise connectors require a separate authorized setup.")
+    role=st.selectbox("Viewing as (demo role)",[
+        "Requestor","Finance Steward","Quality Steward","BU Steward","MDM Steward","Admin"],
+        key="portal_role")
+    if st.session_state.get("portal_last_request"):
+        st.caption("Recent request")
+        st.markdown("**"+st.session_state["portal_last_request"]+"**")
+    st.button("Reset demonstration",on_click=reset_demo,use_container_width=True)
+    st.divider()
+    st.caption("Synthetic case data · Role switching simulates access. No production ERP connection is needed.")
 
-workflow_progress(STEPS.index(page))
-if page == STEPS[0]:
-    from pages.intake import render
-elif page == STEPS[1]:
-    from pages.approvals import render
-elif page == STEPS[2]:
-    from pages.regional import render
-else:
-    from pages.actions import render
-render("Requestor")
+render()
