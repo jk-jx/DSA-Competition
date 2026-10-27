@@ -211,3 +211,15 @@ def test_email_intake_simulates_grace_period_and_routing_without_sending():
     po=route_inbound_email('Purchase order PO 12345 for Product A')
     assert po['record_type']=='PO'
     assert po['route']=='Purchasing / commercial inbox'
+
+def test_reference_backtest_values_are_reproducible():
+    """Detect changes in seeded data, model libraries or evaluation methodology."""
+    from forecast import backtest
+    summary, rows=backtest()
+    results=dict(zip(summary.model,summary["WAPE %"]))
+    assert results["6-month moving average"]==22.07
+    assert results["Holt-Winters"]==30.55
+    assert results["Pooled gradient boosting"]==21.46
+    assert results["Unfiltered training (ablation)"]==22.86
+    assert (summary.held_out_points==45).all()
+    assert rows.groupby("model").actual.sum().nunique()==1
