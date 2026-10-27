@@ -8,6 +8,9 @@ from assistant_guide import render_assistant
 
 st.set_page_config(page_title="Operations | Master Data & Regional Insights",
                    page_icon="◈",layout="wide",initial_sidebar_state="expanded")
+# Register a single hidden page to disable Streamlit's automatic pages/ menu.
+# All employee workspaces are displayed by the portal's own sidebar.
+st.navigation([st.Page(lambda: None, title="Operations portal", default=True)], position="hidden").run()
 seed()
 try:
     process_sla(notify=False)
