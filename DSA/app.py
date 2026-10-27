@@ -14,13 +14,6 @@ try:
 except Exception:
     pass
 style()
-st.markdown("""<style>
-.portal-eyebrow{letter-spacing:.13em;font-size:.7rem;font-weight:800;color:#557697;margin-bottom:5px}
-.portal-status{font-size:.72rem;font-weight:800;color:#2a6c62;text-align:right;
-  border-radius:99px;background:#e4f5ee;padding:11px 10px}
-.status-dot{display:inline-block;width:8px;height:8px;background:#0e9e72;border-radius:50%;margin-right:4px}
-[data-testid="stSidebar"] .stRadio label{margin-bottom:3px}
-</style>""",unsafe_allow_html=True)
 
 if "portal_section" not in st.session_state:
     st.session_state["portal_section"]="Overview"
@@ -44,12 +37,14 @@ def reset_demo():
     st.session_state["request_method"]="Quick form"
 
 with st.sidebar:
-    st.markdown("**LIVES GROUP**")
-    st.markdown("### Operations portal")
-    st.caption("Master data · Procurement intelligence")
+    st.markdown("""<div class="portal-brand"><div class="portal-logo">L</div>
+      <div><div class="portal-brand-name">LIVES GROUP</div>
+      <div class="portal-brand-sub">Operations workspace</div></div></div>""",
+      unsafe_allow_html=True)
+    st.markdown('<div class="portal-side-rule"></div>',unsafe_allow_html=True)
     st.divider()
     section=st.radio("WORKSPACES",SECTIONS,key="portal_section")
-    st.divider()
+    st.markdown('<div class="portal-side-rule"></div>',unsafe_allow_html=True)
     role=st.selectbox("Viewing as (demo role)",[
         "Requestor","Finance Steward","Quality Steward","BU Steward","MDM Steward","Admin"],
         key="portal_role")
@@ -57,8 +52,9 @@ with st.sidebar:
         st.caption("Recent request")
         st.markdown("**"+st.session_state["portal_last_request"]+"**")
     st.button("Reset demonstration",on_click=reset_demo,use_container_width=True)
-    st.divider()
-    st.caption("Synthetic case data · Role switching simulates access. No production ERP connection is needed.")
+    st.markdown('<div class="portal-side-rule"></div>',unsafe_allow_html=True)
+    st.caption("DEMO ENVIRONMENT")
+    st.caption("Synthetic data · Simulated access · No production ERP records")
 
 render()
 render_assistant()
