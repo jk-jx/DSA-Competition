@@ -18,10 +18,10 @@ Or start `streamlit run app.py` directly: it creates the synthetic SQLite databa
 
 1. **Page 3:** Hospital ABC shows **−40%** growth in its original record; confirmed identity mapping has not occurred yet.
 2. **Page 1:** Enter `ABC Hospital` for Singapore, QTS, registration `SG-REG-000001`. Under **Match and merge → golden record**, select the link-existing-identities option, **SG-A001** as the duplicate alias and **SG-C001** as the golden record. Submit; Page 2 selects that fresh request. Seeded request `RQ-0001` is available for rehearsal.
-3. **Page 2:** Switch to **Finance Steward**, approve RQ-0001. Switch to **BU Steward**, approve it. Switch to **MDM Steward**, finalize. Inspect audit events and the mock SAP payload.
+3. **Page 2:** Switch to **Finance Steward**, approve your newly submitted request (or RQ-0001 if using the seed). Switch to **BU Steward**, approve the same request. Switch to **MDM Steward**, finalize. Inspect audit events and the mock SAP payload.
 4. **Page 3:** Hospital ABC's consolidated growth changes to **+20%**. The headline reclassification metric is calculated from live database values. Overall country-product total orders stay constant.
 5. **Page 4:** Drop-off alert becomes an expansion review recommendation. Show honest WAPE backtest and cross-sell candidates.
-6. **Optional:** Switch to **Admin** on Page 2 and add a configuration routing rule without editing the app code.
+6. **Automation:** On Page 1 show the pasted-email classification and prefill. On Page 2 show SLA deadlines, reminders and delegation. The Teams and SAP adapters are optional, credential-gated integration paths — not evidence that a live enterprise tenant is connected.\n7. **Optional:** Switch to **Admin** on Page 2 and add a configuration routing rule without editing the app code.
 
 Press **Reset demonstration data** in the sidebar to replay the story.
 
@@ -54,12 +54,20 @@ Press **Reset demonstration data** in the sidebar to replay the story.
 - Customer and Item forms are implemented; Vendor and Cost Center are configuration stubs. Sensitive fields should be restricted to Finance/MDM in a production SharePoint/Dataverse store.
 - Final SAP handoff creates a JSON payload locally, **not** an ERP record. The payload contains a request ID, and the mock SAP table enforces one record per request. Identity-resolution requests generate a linkage payload rather than creating another customer. Production SAP integration needs proper access, reconciliation and retries.
 - The proposed production architecture uses M365 Power Apps, Power Automate, Teams, restricted SharePoint/Dataverse storage and SAP B1 Service Layer, subject to licensing and security review.
-- LLM extraction, ablation, regional map, webhooks and linked-order hidden-demand estimates are optional, not required for this prototype.
+- Azure OpenAI extraction and Teams webhook notifications are implemented as opt-in connectors, with an always-available rules-first fallback. A guarded SAP B1 Service Layer adapter is implemented; it never writes without configured credentials and explicit authorization. Ablation, regional map and linked-order hidden demand remain extensions.
+
+## Email automation, SLAs and enterprise connection settings
+
+- Page 1 accepts pasted emails, distinguishes **confirmed PO / Customer Request / Enquiry / MDM Setup**, extracts domain fields, and pre-fills the intake form. Only setup requests may enter the MDM queue. The rules-first parser works without credentials.
+- Optional Azure OpenAI extraction: set `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT`, `AZURE_OPENAI_API_KEY` and optionally `AZURE_OPENAI_API_VERSION` in Streamlit secrets. The user opts in by selecting the Azure OpenAI checkbox; extracted values must be reviewed before submission.
+- Page 2 computes working-day approval SLAs, due-soon reminders and overdue delegations. The app evaluates the queue on interactions; an unattended deployment should run `sla.process_sla(notify=True)` on a server schedule. Set `TEAMS_WEBHOOK_URL` to an authorized workflow endpoint to dispatch nonsensitive Teams notifications.
+- SAP B1 test-system dispatch is available to the MDM steward only after completing the maker-checker approvals. Set `SAP_B1_SERVICE_LAYER_URL`, `SAP_B1_COMPANY_DB`, `SAP_B1_USERNAME`, `SAP_B1_PASSWORD` as deployment secrets. This uses SAP B1 Service Layer login/session authentication. Only basic Business Partner and Item create mappings are implemented; identity linking stays a local golden-record mapping until an approved SAP update mapping is provided. Unknown network outcomes are marked **pending reconciliation** rather than automatically retried. Real SAP integration is **not validated without an authorized test tenant**.
+- A Streamlit role switcher is **not real authorization**. Do not configure live production SAP credentials on a public competition demo. Use a dedicated secured deployment with proper authentication for any real record creation.
 
 ## Deploy to Streamlit Community Cloud
 
 1. Push these files into a GitHub repository. **Do not commit personal data or API tokens.**
-2. In Streamlit Community Cloud select **Create app**, choose your repo/branch, set entrypoint `app.py`, then deploy.
+2. In Streamlit Community Cloud select **Create app**, choose your repo/branch, set entrypoint `DSA/app.py`, then deploy.
 3. Share the live app and public repository URL with the judges. Community Cloud's local SQLite may be ephemeral; for a demo, use the reset button before filming and do not depend on persistence across restarts.
 
 ## Competition handoff checklist
