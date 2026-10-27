@@ -1,21 +1,9 @@
-# A single light theme prevents browser/OS dark-mode preferences from turning
-# native Streamlit tables, dropdowns and buttons dark while our portal stays light.
-# The navigation rail has its own explicitly configured dark palette.
 [theme]
 base = "light"
 primaryColor = "#285FA9"
 backgroundColor = "#F6F8FB"
 secondaryBackgroundColor = "#FFFFFF"
 textColor = "#14253B"
-dataframeHeaderBackgroundColor = "#EAF0F6"
-dataframeHeaderTextColor = "#30445E"
-showWidgetBorder = true
-
-[theme.sidebar]
-backgroundColor = "#12263D"
-secondaryBackgroundColor = "#1D3854"
-textColor = "#E9F3FF"
-primaryColor = "#68D9C7"
 
 [client]
 showSidebarNavigation = false
