@@ -25,6 +25,7 @@ from workflow import (
 from ui import hero, panel, pill, metric_tile, section_label
 from quality_monitor import quality_cases, quality_summary
 from network_view import build_identity_network
+from hidden_demand import hidden_demand_model
 
 SECTIONS = ["Overview", "Master Data", "Regional Performance", "Insights & Forecasts", "Administration"]
 WORK_VIEWS = ["Quality exceptions", "Request tracker", "Create request", "Approval inbox"]
@@ -748,6 +749,19 @@ def insights():
     if not ablation.empty:
         st.metric("Unfiltered-input WAPE (contamination test)",f"{float(ablation.iloc[0]['WAPE %']):.2f}%")
         st.caption("This test deliberately trains on PO + enquiry + customer purchasing-request quantities; its holdout is genuine PO demand. MDM setups contain no order quantity and are not invented as transactions.")
+    st.markdown("### Demand visibility · pending master-data setup")
+    st.caption("Scenario estimate of purchasing activity potentially delayed by pending setups—not observed lost revenue or actual blocked orders.")
+    h1,h2,h3=st.columns(3)
+    with h1: days=st.number_input("Assumed waiting days",min_value=0,max_value=60,value=18,key="hidden_days")
+    with h2: fraction=st.slider("Share needing an order",0,100,35,5,key="hidden_fraction")
+    with h3: avg_order=st.number_input("Typical PO value (SGD, assumed)",min_value=0,max_value=1000000,value=1800,step=100,key="hidden_order_value")
+    pending_estimate=hidden_demand_model(days,avg_order,fraction/100)
+    hm1,hm2,hm3=st.columns(3)
+    hm1.metric("Pending MDM setups",pending_estimate["pending_setups"])
+    hm2.metric("Illustrative delayed PO equivalents",f'{pending_estimate["estimated_blocked_order_equivalents"]:.2f}')
+    hm3.metric("Indicative delayed-order value",f'SGD {pending_estimate["illustrative_delayed_value_sgd"]:,.0f}')
+    st.caption("No setup-to-PO linkage exists in the sample data. This sensitivity model estimates potential visibility, not confirmed demand, sales loss or sales gained.")
+
     st.markdown("### Forward purchasing plan · 6–12 months")
     st.caption("Choose a market, product, forecast model and time horizon. Estimates use only genuine synthetic POs; planning scenarios are sensitivities, not statistical confidence intervals.")
     p1,p2,p3,p4=st.columns(4)
