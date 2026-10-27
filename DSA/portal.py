@@ -100,7 +100,7 @@ def overview():
     )
     left, right = st.columns([1.35, 1])
     with left:
-        with st.container(border=True):
+        with st.container(border=True, height=344):
             st.markdown("##### Featured account  ·  Hospital ABC")
             a, b = st.columns(2)
             with a:
@@ -113,7 +113,7 @@ def overview():
                 st.caption("The consolidated view becomes actionable after steward approval.")
             nav_button("Explore customer impact  →", "Regional Performance", key="home_impact")
     with right:
-        with st.container(border=True):
+        with st.container(border=True, height=344):
             st.markdown("##### Decision-quality monitor")
             st.metric("Customer classifications changed", f"{impact['changed']} / {impact['eligible']}")
             st.caption(f"{impact['percent']:.2f}% decision impact on the synthetic comparable accounts.")
@@ -123,20 +123,20 @@ def overview():
     section_label("Your workspaces", "Quick access")
     a, b, c = st.columns(3)
     with a:
-        with st.container(border=True):
+        with st.container(border=True, height=270):
             st.markdown('<div class="card-icon">✚</div><div class="panel-lead">Create a request</div>'
                         '<p class="card-description">Validate customer or item records before they enter the approval queue.</p>',
                         unsafe_allow_html=True)
             nav_button("Create request  →", "Master Data", "Create request",
                        primary=True, key="home_new")
     with b:
-        with st.container(border=True):
+        with st.container(border=True, height=270):
             st.markdown('<div class="card-icon teal">✓</div><div class="panel-lead">Approval inbox</div>'
                         '<p class="card-description">Resolve requests with independent stewardship checks and traceable decisions.</p>',
                         unsafe_allow_html=True)
             nav_button("Review requests  →", "Master Data", "Approval inbox", key="home_review")
     with c:
-        with st.container(border=True):
+        with st.container(border=True, height=270):
             st.markdown('<div class="card-icon violet">↗</div><div class="panel-lead">Regional performance</div>'
                         '<p class="card-description">Explore five-market purchasing trends, account performance and business opportunities.</p>',
                         unsafe_allow_html=True)
@@ -155,7 +155,7 @@ def overview():
         alerts = sla_snapshot()
         overdue = sum(1 for t in alerts if t["sla_status"] == "Overdue")
         soon = sum(1 for t in alerts if t["sla_status"] == "Due soon")
-        with st.container(border=True):
+        with st.container(border=True, height=325):
             st.metric("Overdue decisions", overdue)
             st.caption(f"{soon} due soon  ·  {len(alerts)} currently tracked")
             st.progress((len(alerts) - overdue) / len(alerts) if alerts else 1.0,
