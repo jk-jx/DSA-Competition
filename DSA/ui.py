@@ -8,10 +8,14 @@ STEPS = [
     "04 · Forecast & take action",
 ]
 
+def _navigate(index):
+    st.session_state["nav_step"] = STEPS[index]
+
 def next_step(step, label="Continue to next step"):
-    if st.button(label, type="primary", key=f"go_step_{step}"):
-        st.session_state["nav_step"] = STEPS[step]
-        st.rerun()
+    # Callback runs before widgets are instantiated on the next rerun.
+    # Directly writing radio state after construction raises a Streamlit exception.
+    st.button(label, type="primary", key=f"go_step_{step}",
+              on_click=_navigate, args=(step,))
 
 def demo_note():
     st.caption("Illustrative synthetic data • This is a workflow demonstration, not a live enterprise system.")
