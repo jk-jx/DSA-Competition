@@ -1,0 +1,52 @@
+"""UI smoke test: exercise the actual Streamlit app rather than only domain logic."""
+from pathlib import Path
+
+import pytest
+from streamlit.testing.v1 import AppTest
+
+import database
+import generate_data
+
+APP = str(Path(__file__).resolve().parents[1] / "app.py")
+
+
+@pytest.fixture
+def isolated_app(tmp_path, monkeypatch):
+    db = tmp_path / "ui_smoke.sqlite"
+    monkeypatch.setattr(database, "DB_PATH", db)
+    monkeypatch.setattr(generate_data, "DB_PATH", db)
+    at = AppTest.from_file(APP, default_timeout=100)
+    at.run()
+    assert not at.exception, [str(e.message) for e in at.exception]
+    return at
+
+
+def test_portal_views_render_without_uncaught_errors(isolated_app):
+    app = isolated_app
+    sections = [
+        "Overview", "Master Data", "Regional Performance",
+        "Insights & Forecasts", "Administration",
+    ]
+    for section in sections:
+        app.session_state["portal_section"] = section
+        app.run()
+        assert not app.exception, (
+            section, [str(e.message) for e in app.exception]
+        )
+
+
+def test_master_data_subviews_render_for_each_role(isolated_app):
+    app = isolated_app
+    app.session_state["portal_section"] = "Master Data"
+    for view in ("Request tracker", "Create request", "Approval inbox"):
+        app.session_state["workspace_view"] = view
+        app.run()
+        assert not app.exception, (
+            view, [str(e.message) for e in app.exception]
+        )
+    for role in ("Requestor", "Finance Steward", "BU Steward", "MDM Steward"):
+        app.session_state["portal_role"] = role
+        app.run()
+        assert not app.exception, (
+            role, [str(e.message) for e in app.exception]
+        )
