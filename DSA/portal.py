@@ -28,20 +28,19 @@ SECTIONS = ["Overview", "Master Data", "Regional Performance", "Insights & Forec
 WORK_VIEWS = ["Request tracker", "Create request", "Approval inbox"]
 
 
-def go(section, work_view=None, role=None, request=None):
+def go(section, work_view=None, request=None):
+    """Navigate only; the role is controlled exclusively by the sidebar."""
     st.session_state["portal_section"] = section
     if work_view is not None:
         st.session_state["workspace_view"] = work_view
-    if role is not None:
-        st.session_state["portal_role"] = role
     if request is not None:
         st.session_state["chosen_request"] = request
 
 
-def nav_button(title, section, work_view=None, role=None, request=None, primary=False, key=None):
+def nav_button(title, section, work_view=None, request=None, primary=False, key=None):
     st.button(
         title, use_container_width=True, type="primary" if primary else "secondary",
-        key=key, on_click=go, args=(section, work_view, role, request)
+        key=key, on_click=go, args=(section, work_view, request)
     )
 
 
@@ -338,10 +337,6 @@ def request_tracker():
         nav_button("Open approval inbox", "Master Data", "Approval inbox", key="track_approve")
 
 
-def _set_role(role):
-    st.session_state["portal_role"] = role
-
-
 def approval_inbox():
     st.markdown("### Approval inbox")
     st.caption("Review assigned requests and track approval status.")
@@ -395,9 +390,8 @@ def approval_inbox():
     elif item.status == "In Approval":
         remaining = tasks[tasks.state == "Pending"].steward.tolist()
         if remaining:
-            st.info(f"Awaiting {', '.join(remaining)}.")
-            other = remaining[0]
-            st.button(f"Switch to {other}", on_click=_set_role, args=(other,))
+            st.info(f"Awaiting review from {', '.join(remaining)}.")
+            st.caption("No action is available to your current role for this request.")
     elif item.status == "Approved":
         st.success("All assigned stewards approved this request. Ready for final MDM review.")
         if role == "MDM Steward":
@@ -408,8 +402,8 @@ def approval_inbox():
                 except WorkflowError as exc:
                     st.error(str(exc))
         else:
-            st.button("Continue as MDM Steward", on_click=_set_role, args=("MDM Steward",),
-                      type="primary")
+            st.info("Awaiting final confirmation by the MDM Steward.")
+            st.caption("Only the assigned MDM Steward can complete this step.")
     elif item.status == "Created":
         st.success("Completed. The approved identity and SAP-ready handoff are recorded.")
         nav_button("See the effect on customer growth  →", "Regional Performance",
