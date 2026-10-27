@@ -24,6 +24,7 @@ from workflow import (
 )
 from ui import hero, panel, pill, metric_tile, section_label
 from quality_monitor import quality_cases, quality_summary
+from network_view import build_identity_network
 
 SECTIONS = ["Overview", "Master Data", "Regional Performance", "Insights & Forecasts", "Administration"]
 WORK_VIEWS = ["Quality exceptions", "Request tracker", "Create request", "Approval inbox"]
@@ -535,6 +536,10 @@ def quality_exceptions():
     if shown.empty:
         st.caption("No cases match the selected filters.")
         return
+    view_mode=st.segmented_control("Explore exceptions",["Table","3D identity network"],default="Table",key="exceptions_display")
+    if view_mode=="3D identity network":
+        st.plotly_chart(build_identity_network(shown,highlighted_alias=st.session_state.get("exception_selected")),use_container_width=True)
+        st.caption("Orbit to inspect candidate identities and PO exposure. Orange = proposed, teal = approved, blue = potential golden record. Spatial positions are for exploration only.")
     choices=shown.alias_id.tolist()
     selected=st.selectbox("Inspect candidate",choices,key="exception_selected")
     case=shown.set_index("alias_id").loc[selected]
