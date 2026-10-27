@@ -115,3 +115,17 @@ def test_identity_case_evidence_is_a_preview_until_approved():
     assert after['approval_applied']
     assert after['total_po_units']==original
     assert after['monthly'].equals(first['monthly'])
+
+def test_forward_purchasing_plan_is_reproducible_and_po_only():
+    from forecast import forward_plan
+    for horizon in (6,12):
+        for model in ('6-month moving average','Holt-Winters'):
+            result=forward_plan('SG','A',horizon,model)
+            assert len(result)==horizon
+            assert result.iloc[0]['Month']=='2026-10'
+            assert result.iloc[-1]['Month']==('2027-03' if horizon==6 else '2027-09')
+            assert (result['Low planning scenario']<=result['Forecast units']).all()
+            assert (result['Forecast units']<=result['High planning scenario']).all()
+            assert (result['Forecast units']>=0).all()
+    with pytest.raises(ValueError):
+        forward_plan('SG','A',18)
