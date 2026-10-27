@@ -1,0 +1,32 @@
+# Demo configuration. Customer and Item have working forms; other domains are extensible stubs.
+domains:
+  Customer:
+    required: [name, country, entity, registration_number]
+    fields:
+      name: {label: Customer name, type: text}
+      country: {label: Country, type: country}
+      entity: {label: Business entity, type: entity}
+      registration_number: {label: Registration / business identifier, type: text}
+      contact_email: {label: Contact email, type: text}
+    stewards: [Finance Steward, BU Steward]
+  Item:
+    required: [name, country, entity, item_category]
+    fields:
+      name: {label: Item name, type: text}
+      country: {label: Country, type: country}
+      entity: {label: Business entity, type: entity}
+      item_category: {label: Item category, type: text}
+      regulatory_class: {label: Regulatory class, type: text}
+    stewards: [Quality Steward, BU Steward]
+  Vendor:
+    prototype_status: config_only
+    required: [name, country, entity]
+    stewards: [Finance Steward, BU Steward]
+  Cost Center:
+    prototype_status: config_only
+    required: [name, country, entity]
+    stewards: [Finance Steward]
+matching:
+  review: 90
+  warn: 75
+  # Scores below 75 do not trigger a warning.
