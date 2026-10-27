@@ -1,0 +1,31 @@
+# Shared portal palette across user light/dark appearance settings.
+# Native Streamlit controls must use the same contrast as custom portal cards.
+[theme]
+base = "light"
+primaryColor = "#245EA6"
+backgroundColor = "#F6F8FB"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#14253B"
+
+[theme.sidebar]
+backgroundColor = "#12263D"
+secondaryBackgroundColor = "#1D3854"
+textColor = "#E9F3FF"
+primaryColor = "#68D9C7"
+
+# Match the portal palette if visitors choose Dark in their personal
+# Streamlit settings, instead of letting radio / select controls invert.
+[theme.dark]
+primaryColor = "#245EA6"
+backgroundColor = "#F6F8FB"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#14253B"
+
+[theme.dark.sidebar]
+backgroundColor = "#12263D"
+secondaryBackgroundColor = "#1D3854"
+textColor = "#E9F3FF"
+primaryColor = "#68D9C7"
+
+[client]
+showSidebarNavigation = false
