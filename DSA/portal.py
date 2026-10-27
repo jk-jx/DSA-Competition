@@ -27,6 +27,7 @@ from quality_monitor import quality_cases, quality_summary
 from network_view import build_identity_network
 from hidden_demand import hidden_demand_model
 from email_routing import route_inbound_email
+from classifier_evaluation import classifier_benchmark
 
 SECTIONS = ["Overview", "Master Data", "Regional Performance", "Insights & Forecasts", "Administration"]
 WORK_VIEWS = ["Quality exceptions", "Request tracker", "Create request", "Approval inbox"]
@@ -814,6 +815,13 @@ def insights():
             }), hide_index=True, use_container_width=True)
         else:
             st.caption("No accounts trigger the current rule.")
+    with st.expander("Record classification quality · labelled synthetic examples"):
+        accuracy=classifier_benchmark()
+        a,b=st.columns(2)
+        a.metric("Rules-based accuracy",f'{accuracy["accuracy"]:.1f}%')
+        b.metric("Synthetic labelled cases",accuracy["count"])
+        st.caption("Curated synthetic message examples only. This is NOT a production email benchmark or independently measured AI accuracy.")
+        st.dataframe(accuracy["details"][["Expected category","Predicted category","Correct"]],hide_index=True,use_container_width=True)
     with st.expander("Methodology"):
         st.caption("36 months of synthetic data, 15 country–product series, three matched monthly forecasting origins. Six-month moving average, Holt–Winters and pooled gradient boosting are evaluated on the same PO holdout; a fourth run uses contaminated input as an ablation. Recommendations are rule-based and must be checked by sales teams.")
         st.dataframe(summary, hide_index=True, use_container_width=True)
