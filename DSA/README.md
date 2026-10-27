@@ -17,7 +17,7 @@ Or start `streamlit run app.py` directly: it creates the synthetic SQLite databa
 ## Demo sequence
 
 1. **Page 3:** Hospital ABC shows **−40%** growth in its original record; confirmed identity mapping has not occurred yet.
-2. **Page 1:** Enter `ABC Hospital` for Singapore, QTS, registration `SG-REG-000001`; observe similar customer records. **Page 2 already contains seeded request `RQ-0001`** so the recording can skip typing.
+2. **Page 1:** Enter `ABC Hospital` for Singapore, QTS, registration `SG-REG-000001`. Under **Match and merge → golden record**, select the link-existing-identities option, **SG-A001** as the duplicate alias and **SG-C001** as the golden record. Submit; Page 2 selects that fresh request. Seeded request `RQ-0001` is available for rehearsal.
 3. **Page 2:** Switch to **Finance Steward**, approve RQ-0001. Switch to **BU Steward**, approve it. Switch to **MDM Steward**, finalize. Inspect audit events and the mock SAP payload.
 4. **Page 3:** Hospital ABC's consolidated growth changes to **+20%**. The headline reclassification metric is calculated from live database values. Overall country-product total orders stay constant.
 5. **Page 4:** Drop-off alert becomes an expansion review recommendation. Show honest WAPE backtest and cross-sell candidates.
@@ -61,6 +61,15 @@ Press **Reset demonstration data** in the sidebar to replay the story.
 1. Push these files into a GitHub repository. **Do not commit personal data or API tokens.**
 2. In Streamlit Community Cloud select **Create app**, choose your repo/branch, set entrypoint `app.py`, then deploy.
 3. Share the live app and public repository URL with the judges. Community Cloud's local SQLite may be ephemeral; for a demo, use the reset button before filming and do not depend on persistence across restarts.
+
+## Competition handoff checklist
+
+- Verify all four pages on the live hosted app and reset before filming.
+- Update the two-page report with the measured reclassification rate and actual WAPE; do not claim that Holt–Winters wins unless it does.
+- Upload the 2–3-minute YouTube walkthrough and include the video, repository, and live app links in the report.
+- The dataset and SAP-ready export are simulated; this is not a live SAP connection.
+- The role switcher is illustrative only: never enter real sensitive, banking, customer or patient data.
+- Streamlit Community Cloud's SQLite may be ephemeral and shared across visitors; this is not production persistence.
 
 ## Validation
 
