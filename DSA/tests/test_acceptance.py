@@ -56,13 +56,36 @@ def test_duplicate_normalization_and_tier():
 
 def test_new_item_request_and_configurable_approvals():
     add_approval_rule('NEWBU','Item','SG','Quality Steward',sla_days=2)
-    key=submit_request('Item',{'name':'Diagnostic Tubes','country':'SG','entity':'NEWBU','item_category':'Consumables'})
+    key=submit_request('Item',{'name':'Diagnostic Tubes','country':'SG','entity':'NEWBU','item_category':'Consumables',
+                               'regulatory_class':'Not regulated'})
     routed=load_df('SELECT steward FROM approval_tasks WHERE request_key=?',(key,))
     assert set(routed.steward)=={'Quality Steward'}
     decide(key,'Quality Steward','Nadia Quality','Approved')
     payload=finalize(key,'Priya MDM')['payload']
     assert payload['Action']=='CreateMasterRecord'
     assert payload['Object']=='Items'
+
+
+ITEM={'name':'Lab Reagent Kit','country':'SG','entity':'QTS','item_category':'Reagents'}
+
+def test_item_without_regulatory_class_is_blocked():
+    with pytest.raises(WorkflowError,match='regulatory_class'):
+        submit_request('Item',dict(ITEM))
+    assert load_df("SELECT 1 FROM mdm_requests WHERE domain='Item'").empty
+
+def test_regulated_item_requires_licence_number():
+    with pytest.raises(WorkflowError,match='licence_number'):
+        submit_request('Item',{**ITEM,'regulatory_class':'Class B'})
+    key=submit_request('Item',{**ITEM,'regulatory_class':'Class B','licence_number':'DE0012345'})
+    assert status_for(key)['status']=='In Approval'
+
+def test_unregulated_item_does_not_need_licence_number():
+    key=submit_request('Item',{**ITEM,'regulatory_class':'Not regulated'})
+    assert status_for(key)['status']=='In Approval'
+
+def test_regulatory_class_must_be_a_listed_value():
+    with pytest.raises(WorkflowError,match='listed value'):
+        submit_request('Item',{**ITEM,'regulatory_class':'Probably fine','licence_number':'X1'})
 
 
 def test_invalid_canonical_mapping_is_blocked_at_intake():

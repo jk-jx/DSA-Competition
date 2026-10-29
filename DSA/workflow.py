@@ -17,10 +17,31 @@ def approval_stewards(c, domain, entity, country):
                    (domain,entity,country)).fetchall()
     return [r['steward'] for r in rows] or settings()['domains'][domain]['stewards']
 
+def _filled(payload,field):
+    return bool(str(payload.get(field) or '').strip())
+
+def required_fields(cfg,payload):
+    """Always-required fields plus those switched on by conditional_required rules."""
+    fields=list(cfg.get('required',[]))
+    for rule in cfg.get('conditional_required',[]):
+        trigger=payload.get(rule['when_field'])
+        if _filled(payload,rule['when_field']) and trigger not in rule.get('not_in',[]):
+            fields.append(rule['field'])
+    return fields
+
+def missing_fields(cfg,payload):
+    return [f for f in required_fields(cfg,payload) if not _filled(payload,f)]
+
+def invalid_choices(cfg,payload):
+    return [f for f,spec in cfg.get('fields',{}).items()
+            if spec.get('type')=='select' and _filled(payload,f) and payload[f] not in spec['options']]
+
 def submit_request(domain,payload,requester='Alex Sales',merge_source=None,merge_target=None):
     cfg=settings()['domains'][domain]
-    missing=[f for f in cfg['required'] if not str(payload.get(f,'')).strip()]
+    missing=missing_fields(cfg,payload)
     if missing: raise WorkflowError('Required fields missing: '+', '.join(missing))
+    invalid=invalid_choices(cfg,payload)
+    if invalid: raise WorkflowError('Choose a listed value for: '+', '.join(invalid))
     country=payload['country']; entity=payload['entity']
     if bool(merge_source) != bool(merge_target):
         raise WorkflowError('Choose both an existing alias and a golden record, or neither.')

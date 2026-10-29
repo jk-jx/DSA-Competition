@@ -65,3 +65,34 @@ def test_prepare_customer_review_click_prefills_form(isolated_app):
     assert app.session_state["prepared_alias"]
     assert app.session_state["prepared_target"]
     assert app.session_state["req_Customer_registration_number"]
+
+
+def _item_form(app, **fields):
+    app.session_state["portal_section"] = "Master Data"
+    app.session_state["workspace_view"] = "Create request"
+    app.session_state["req_domain"] = "Item"
+    for key, value in {"name": "Lab Reagent Kit", "item_category": "Reagents", **fields}.items():
+        app.session_state[f"req_Item_{key}"] = value
+    app.session_state["req_ack"] = True
+    app.run()
+    assert not app.exception, [str(e.message) for e in app.exception]
+    return next(b for b in app.button if b.label == "Submit for approval")
+
+
+def test_item_form_blocks_submit_until_regulatory_class_chosen(isolated_app):
+    submit = _item_form(isolated_app)
+    assert submit.disabled
+    assert any("Regulatory class" in w.value for w in isolated_app.warning)
+
+
+def test_item_form_requires_licence_for_regulated_class(isolated_app):
+    submit = _item_form(isolated_app, regulatory_class="Class B")
+    assert submit.disabled
+    assert any("licence number" in i.value for i in isolated_app.info)
+    submit = _item_form(isolated_app, regulatory_class="Class B", licence_number="DE0012345")
+    assert not submit.disabled
+
+
+def test_email_extracted_class_text_maps_to_option(isolated_app):
+    _item_form(isolated_app, regulatory_class="class b")
+    assert isolated_app.session_state["req_Item_regulatory_class"] == "Class B"

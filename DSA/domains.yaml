@@ -10,13 +10,23 @@ domains:
       contact_email: {label: Contact email, type: text}
     stewards: [Finance Steward, BU Steward]
   Item:
-    required: [name, country, entity, item_category]
+    required: [name, country, entity, item_category, regulatory_class]
     fields:
       name: {label: Item name, type: text}
       country: {label: Country, type: country}
       entity: {label: Business entity, type: entity}
       item_category: {label: Item category, type: text}
-      regulatory_class: {label: Regulatory class, type: text}
+      regulatory_class:
+        label: Regulatory class
+        type: select
+        options: [Not regulated, Class A, Class B, Class C, Class D]
+      licence_number: {label: Product licence / registration number, type: text}
+    # Editable by the MDM team: a field becomes mandatory when another field has certain values.
+    conditional_required:
+      - field: licence_number
+        when_field: regulatory_class
+        not_in: [Not regulated]
+        reason: Regulated products need a licence number before Quality review.
     stewards: [Quality Steward, BU Steward]
   Vendor:
     prototype_status: config_only

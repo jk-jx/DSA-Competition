@@ -19,7 +19,7 @@ from intake_parser import extract_message
 from sap_integration import configured as sap_configured, send_live, SAPIntegrationError
 from sla import process_sla, sla_snapshot
 from workflow import (
-    WorkflowError, add_approval_rule, decide, finalize, submit_request,
+    WorkflowError, add_approval_rule, decide, finalize, missing_fields, required_fields, submit_request,
 )
 from ui import hero, panel, pill, metric_tile, section_label
 from quality_monitor import quality_cases, quality_summary
@@ -251,9 +251,18 @@ def request_form():
     for i, (key, spec) in enumerate(info["fields"].items()):
         col = a if i % 2 == 0 else b
         with col:
-            label = spec["label"] + (" *" if key in info["required"] else "")
+            label = spec["label"] + (" *" if key in required_fields(info, vals) else "")
             widget_key = f"req_{domain}_{key}"
-            if spec["type"] == "country":
+            if spec["type"] == "select":
+                prefilled = st.session_state.get(widget_key)
+                if prefilled is not None and prefilled not in spec["options"]:
+                    # Email extraction yields free text such as "class b"; map it or leave the choice open.
+                    text = str(prefilled).strip().lower()
+                    st.session_state[widget_key] = next(
+                        (o for o in spec["options"] if text in (o.lower(), o.lower().replace("class ", ""))), None)
+                vals[key] = st.selectbox(label, spec["options"], index=None,
+                                         placeholder="Select…", key=widget_key)
+            elif spec["type"] == "country":
                 vals[key] = st.selectbox(label, list(COUNTRIES), format_func=lambda v: COUNTRIES[v], key=widget_key)
             elif spec["type"] == "entity":
                 configured = load_df("SELECT DISTINCT entity FROM approval_matrix")["entity"].tolist()
@@ -261,10 +270,14 @@ def request_form():
             else:
                 vals[key] = st.text_input(label, key=widget_key)
 
-    missing = [field for field in info["required"] if not str(vals.get(field, "")).strip()]
+    missing = missing_fields(info, vals)
     match_source = match_target = None
+    for rule in info.get("conditional_required", []):
+        if rule["field"] in required_fields(info, vals):
+            st.info(rule["reason"])
     if missing:
-        st.warning("Complete these required fields: " + ", ".join(missing))
+        labels = [info["fields"].get(field, {}).get("label", field) for field in missing]
+        st.warning("Complete these required fields: " + ", ".join(labels))
     else:
         st.success("Required fields complete.")
 
