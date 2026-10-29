@@ -19,7 +19,8 @@ from intake_parser import extract_message
 from sap_integration import configured as sap_configured, send_live, SAPIntegrationError
 from sla import process_sla, sla_snapshot
 from workflow import (
-    WorkflowError, add_approval_rule, decide, finalize, missing_fields, required_fields, submit_request,
+    WorkflowError, add_approval_rule, can_view_sensitive, decide, finalize, masked_payload, missing_fields,
+    required_fields, reveal_sensitive, sensitive_fields, submit_request,
 )
 from ui import hero, panel, pill, metric_tile, section_label
 from quality_monitor import quality_cases, quality_summary
@@ -378,6 +379,36 @@ def request_tracker():
         nav_button("Open approval inbox", "Master Data", "Approval inbox", key="track_approve")
 
 
+def request_details(key, domain, role):
+    stored = json.loads(load_df("SELECT payload FROM mdm_requests WHERE request_key=?", (key,)).iloc[0].payload)
+    fields = settings()["domains"][domain].get("fields", {})
+    hidden = sensitive_fields(domain)
+    reveal_flag = f"revealed_{key}_{role}"
+    values = stored if st.session_state.get(reveal_flag) else masked_payload(domain, stored)
+    rows = [{"Field": spec["label"] + (" (restricted)" if name in hidden else ""), "Value": str(values.get(name) or "")}
+            for name, spec in fields.items() if str(stored.get(name) or "").strip()]
+    with st.container(border=True):
+        st.markdown("#### Request details")
+        if rows:
+            st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+        else:
+            st.caption("No field values recorded for this request.")
+        if not any(name in hidden and str(stored.get(name) or "").strip() for name in fields):
+            return
+        if not can_view_sensitive(domain, role):
+            st.caption("Bank and credit details are visible to Finance and MDM stewards only.")
+        elif not st.session_state.get(reveal_flag):
+            if st.button("Reveal sensitive fields (logged)", key=f"reveal_{key}"):
+                try:
+                    reveal_sensitive(key, role, ROLE_ACTOR[role])
+                    st.session_state[reveal_flag] = True
+                    st.rerun()
+                except WorkflowError as exc:
+                    st.error(str(exc))
+        else:
+            st.caption("Sensitive values shown. This view was recorded in the audit history.")
+
+
 def approval_inbox():
     role=st.session_state["portal_role"]
     title="Request status" if role=="Requestor" else "Approval inbox"
@@ -427,6 +458,7 @@ def approval_inbox():
     b.metric("Status",item.status)
     c.metric("Record type",item.domain)
     st.caption(f"{item.record_name} · {item.entity} · {item.country} · Requested by {item.requested_by}")
+    request_details(key, item.domain, role)
 
     tasks=load_df(
         "SELECT steward,state,decision_by,decision_at FROM approval_tasks WHERE request_key=? ORDER BY id",(key,)
@@ -522,6 +554,9 @@ def approval_inbox():
     if not sap.empty:
         with st.expander("ERP handoff"):
             data=json.loads(sap.iloc[0].payload_json)
+            if not can_view_sensitive(item.domain, role):
+                data={**data, "Values": masked_payload(item.domain, data.get("Values") or {})}
+                st.caption("Bank and credit values are masked in this export for your role.")
             st.write("SAP-ready record prepared")
             st.caption("Integration status: local simulated handoff · No production ERP write")
             st.download_button("Export handoff",json.dumps(data,indent=2),

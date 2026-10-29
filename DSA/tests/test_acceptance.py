@@ -255,3 +255,30 @@ def test_regional_chart_and_summary_share_entity_filter():
     assert int(observed.qty.sum())==int(expected.qty.sum())
     all_units=int(monthly(country='SG',product='A').qty.sum())
     assert int(observed.qty.sum())<=all_units
+
+
+SENSITIVE_CUSTOMER={'name':'Riverside Medical Centre','country':'MY','entity':'SPD','registration_number':'MY-REG-777',
+                    'credit_terms':'Net 60','credit_limit':'50000','bank_account':'5140012345678'}
+
+def test_sensitive_customer_fields_are_masked_for_other_roles():
+    from workflow import masked_payload,can_view_sensitive
+    shown=masked_payload('Customer',SENSITIVE_CUSTOMER)
+    assert shown['bank_account']=='••••5678'
+    assert shown['credit_limit']=='••••' and shown['credit_terms']=='••••'
+    assert shown['name']=='Riverside Medical Centre'
+    assert can_view_sensitive('Customer','Finance Steward') and can_view_sensitive('Customer','MDM Steward')
+    assert not any(can_view_sensitive('Customer',r) for r in ('Requestor','BU Steward','Admin'))
+
+def test_finance_reveal_is_audited_and_others_are_refused():
+    from workflow import reveal_sensitive
+    key=submit_request('Customer',dict(SENSITIVE_CUSTOMER))
+    with pytest.raises(WorkflowError):
+        reveal_sensitive(key,'BU Steward','Daniel BU Head')
+    assert reveal_sensitive(key,'Finance Steward','Wei Jie Finance')['bank_account']=='5140012345678'
+    log=load_df("SELECT actor,event,details FROM audit_log WHERE request_key=? AND event='Sensitive fields viewed'",(key,))
+    assert list(log.actor)==['Wei Jie Finance']
+    assert 'bank_account' in log.details.iloc[0] and '5140012345678' not in log.details.iloc[0]
+
+def test_credit_terms_must_be_a_listed_value():
+    with pytest.raises(WorkflowError,match='listed value'):
+        submit_request('Customer',{**SENSITIVE_CUSTOMER,'credit_terms':'Whenever'})

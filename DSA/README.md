@@ -40,7 +40,9 @@ Open **Master Data → Create request**.
 
 1. Under **Intake channel**, select **Quick form** to enter details manually or **From email** to extract information from an existing message.
 2. Select the record type, such as **Customer** or **Item**.
-3. Fill in the required fields. The form checks for missing details and, where applicable, possible duplicate records. For an **Item**, choose a **Regulatory class**; any class other than *Not regulated* also requires a **product licence / registration number** before the request can reach Quality review. This rule is set in `domains.yaml` (`conditional_required`), so the MDM team can change it without code.
+3. Fill in the required fields. The form checks for missing details and, where applicable, possible duplicate records. For an **Item**, choose a **Regulatory class**; any class other than *Not regulated* also requires a **product licence / registration number** before the request can reach Quality review. This rule is set in `domains.yaml` (`conditional_required`), so the MDM team can change it without code. For a **Customer**, credit terms, credit limit and bank account number can be entered; these are marked sensitive in `domains.yaml`.
+
+**Sensitive fields:** after submission, bank and credit values are masked (for example `••••5678`) for every role. Finance and MDM stewards can select **Reveal sensitive fields (logged)**, which records who viewed them in the request's audit history. The ERP handoff export is also masked for roles that cannot view them.
 4. Review the suggested matches carefully. If an existing record should be retained, confirm the proposed identity-link details.
 5. Select the acknowledgement checkbox and then **Submit for approval**.
 

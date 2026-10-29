@@ -96,3 +96,56 @@ def test_item_form_requires_licence_for_regulated_class(isolated_app):
 def test_email_extracted_class_text_maps_to_option(isolated_app):
     _item_form(isolated_app, regulatory_class="class b")
     assert isolated_app.session_state["req_Item_regulatory_class"] == "Class B"
+
+
+def _inbox_as(app, role, key):
+    app.session_state["portal_section"] = "Master Data"
+    app.session_state["workspace_view"] = "Approval inbox"
+    app.session_state["portal_role"] = role
+    app.session_state["chosen_request"] = key
+    app.run()
+    assert not app.exception, [str(e.message) for e in app.exception]
+
+
+def _detail_values(app):
+    table = next(df.value for df in app.dataframe if "Field" in df.value.columns)
+    return dict(zip(table.Field, table.Value))
+
+
+def test_inbox_masks_bank_details_and_logs_finance_reveal(isolated_app):
+    from workflow import submit_request
+    from database import load_df
+    key = submit_request("Customer", {
+        "name": "Riverside Medical Centre", "country": "MY", "entity": "SPD",
+        "registration_number": "MY-REG-777", "credit_terms": "Net 60", "bank_account": "5140012345678"})
+    app = isolated_app
+
+    _inbox_as(app, "BU Steward", key)
+    assert _detail_values(app)["Bank account number (restricted)"] == "••••5678"
+    assert not any(b.label.startswith("Reveal") for b in app.button)
+
+    _inbox_as(app, "Finance Steward", key)
+    assert _detail_values(app)["Bank account number (restricted)"] == "••••5678"
+    next(b for b in app.button if b.label.startswith("Reveal")).click().run()
+    assert not app.exception, [str(e.message) for e in app.exception]
+    assert _detail_values(app)["Bank account number (restricted)"] == "5140012345678"
+    views = load_df("SELECT actor FROM audit_log WHERE request_key=? AND event='Sensitive fields viewed'", (key,))
+    assert list(views.actor) == ["Wei Jie Finance"]
+
+
+def test_erp_export_masks_bank_details_for_non_finance_roles(isolated_app):
+    from workflow import submit_request, decide, finalize
+    key = submit_request("Customer", {
+        "name": "Riverside Medical Centre", "country": "MY", "entity": "SPD",
+        "registration_number": "MY-REG-777", "bank_account": "5140012345678"})
+    decide(key, "Finance Steward", "Wei Jie Finance", "Approved")
+    decide(key, "BU Steward", "Daniel BU Head", "Approved")
+    finalize(key, "Priya MDM")
+    app = isolated_app
+
+    _inbox_as(app, "BU Steward", key)
+    assert app.get("download_button")
+    assert "masked in this export" in " ".join(c.value for c in app.caption)
+
+    _inbox_as(app, "MDM Steward", key)
+    assert "masked in this export" not in " ".join(c.value for c in app.caption)

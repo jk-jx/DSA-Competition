@@ -36,6 +36,33 @@ def invalid_choices(cfg,payload):
     return [f for f,spec in cfg.get('fields',{}).items()
             if spec.get('type')=='select' and _filled(payload,f) and payload[f] not in spec['options']]
 
+def sensitive_fields(domain):
+    return [f for f,spec in settings()['domains'][domain].get('fields',{}).items() if spec.get('sensitive')]
+
+def can_view_sensitive(domain,role):
+    return role in settings()['domains'][domain].get('sensitive_viewers',[])
+
+def mask(value):
+    text=str(value or '').strip()
+    if not text: return ''
+    return '••••'+text[-4:] if len(text)>6 else '••••'
+
+def masked_payload(domain,payload):
+    hidden=sensitive_fields(domain)
+    return {k:(mask(v) if k in hidden else v) for k,v in payload.items()}
+
+def reveal_sensitive(key,role,actor):
+    """Return unmasked values to permitted roles and log every reveal."""
+    req=status_for(key)
+    if not can_view_sensitive(req['domain'],role):
+        raise WorkflowError(f'{role} is not permitted to view sensitive fields.')
+    payload=json.loads(req['payload'])
+    shown=[f for f in sensitive_fields(req['domain']) if _filled(payload,f)]
+    with conn() as c:
+        audit(c,key,'Sensitive fields viewed',actor,f"{role} revealed: {', '.join(shown) or 'none provided'}")
+        c.commit()
+    return payload
+
 def submit_request(domain,payload,requester='Alex Sales',merge_source=None,merge_target=None):
     cfg=settings()['domains'][domain]
     missing=missing_fields(cfg,payload)

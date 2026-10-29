@@ -8,6 +8,15 @@ domains:
       entity: {label: Business entity, type: entity}
       registration_number: {label: Registration / business identifier, type: text}
       contact_email: {label: Contact email, type: text}
+      credit_terms:
+        label: Credit terms
+        type: select
+        options: [Cash on delivery, Net 30, Net 60, Net 90]
+        sensitive: true
+      credit_limit: {label: Credit limit (SGD), type: text, sensitive: true}
+      bank_account: {label: Bank account number, type: text, sensitive: true}
+    # Roles that may reveal sensitive fields; everyone else sees masked values.
+    sensitive_viewers: [Finance Steward, MDM Steward]
     stewards: [Finance Steward, BU Steward]
   Item:
     required: [name, country, entity, item_category, regulatory_class]
